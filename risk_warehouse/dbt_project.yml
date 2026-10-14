@@ -1,0 +1,39 @@
+name: 'risk_warehouse'
+version: '1.0.0'
+
+profile: 'risk_warehouse'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  # PaySim `step` is an hour index with no real date attached. transaction_ts is derived as
+  # paysim_start_date + (step - 1) hours. The anchor date is arbitrary but fixed so that output
+  # is reproducible.
+  paysim_start_date: '2024-01-01'
+
+models:
+  risk_warehouse:
+    # Staging: 1:1 with raw sources, rename/cast/clean only. Views keep them cheap.
+    staging:
+      +schema: staging
+      +materialized: view
+    # Intermediate: joins and risk features. Not consumed directly by analysts.
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    # Marts: tables for analytics (star schema) and ML.
+    marts:
+      +materialized: table
+      core:
+        +schema: core
+      ml:
+        +schema: ml

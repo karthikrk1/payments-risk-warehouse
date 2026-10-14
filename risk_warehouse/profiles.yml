@@ -1,0 +1,10 @@
+# Repo-local dbt profile. No credentials: DuckDB is a local file.
+# dbt finds this file when run from the risk_warehouse/ directory, so no ~/.dbt setup is needed.
+risk_warehouse:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Relative to risk_warehouse/, where dbt is run from.
+      path: ../warehouse/risk.duckdb
+      threads: 4
