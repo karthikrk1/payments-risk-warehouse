@@ -1,0 +1,131 @@
+models:
+  - name: ml_transaction_features
+    description: >
+      **Grain: one row per transaction.** Point-in-time-correct fraud features, the `is_fraud`
+      label, and PaySim's legacy rule as a baseline.
+
+
+      **Leakage rules, enforced by tests:**
+      (1) every feature uses only data from before the transaction: windows end at the previous
+      hour, because PaySim timestamps are hourly and same-hour order is unknown; each feature
+      group's `audit_*` column records the latest source event it read, and
+      `assert_ml_features_use_only_prior_data` fails if any is not earlier;
+      (2) no balance column or balance-mismatch flag is a feature
+      (`assert_ml_features_exclude_balances` checks the table's real columns), because
+      after-balances are post-transaction and the dataset's author says balances must not be used
+      for fraud detection; (3) the velocity windows match a brute-force recount
+      (`assert_receiver_velocity_matches_recount`).
+
+
+      Login and device features carry a planted, synthetic signal: they show the pipeline works,
+      not that these signals predict real fraud.
+    data_tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('stg_paysim__transactions')
+    columns:
+      - name: transaction_id
+        description: Primary key.
+        data_tests:
+          - unique
+          - not_null
+      - name: as_of_ts
+        description: The transaction's time; every feature is computed as of just before it.
+        data_tests:
+          - not_null
+      - name: transaction_type
+        description: Transaction type.
+      - name: transaction_amount
+        description: Amount, known at decision time.
+      - name: hour_of_day
+        description: Hour of the simulated day, 0-23 (from PaySim's step).
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 23
+      - name: is_merchant_receiver
+        description: Receiver is a merchant. Receiver-side features are null then.
+      - name: sender_account_age_hours
+        description: Hours from the sender's signup to the transaction. Never negative.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+      - name: receiver_account_age_hours
+        description: Same for the receiver. Null for merchants.
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+      - name: sender_kyc_status
+        description: Sender's KYC status (a current snapshot; see the model SQL).
+      - name: sender_activity_count_1h
+        description: Transactions the sender sent or received in the previous hour.
+        data_tests:
+          - not_null
+      - name: sender_activity_count_24h
+        description: Same over the previous 24 hours.
+        data_tests:
+          - not_null
+      - name: sender_activity_count_7d
+        description: Same over the previous 168 hours.
+        data_tests:
+          - not_null
+      - name: receiver_received_count_24h
+        description: Transactions the receiver received in the previous 24 hours. Null for merchants.
+      - name: receiver_received_count_7d
+        description: Same over the previous 168 hours. Null for merchants.
+      - name: receiver_received_amount_24h
+        description: Amount the receiver received in the previous 24 hours. Null for merchants.
+      - name: receiver_received_amount_7d
+        description: Same over the previous 168 hours. Null for merchants.
+      - name: amount_to_receiver_avg_7d_ratio
+        description: >
+          This amount divided by the receiver's average received amount over the previous 168
+          hours. Null when the receiver had received nothing in that time, or is a merchant.
+      - name: login_count_24h
+        description: Sender's login attempts in the 24 hours before the transaction.
+        data_tests:
+          - not_null
+      - name: failed_login_count_24h
+        description: Failed attempts among them. Planted, synthetic signal.
+        data_tests:
+          - not_null
+      - name: device_prior_other_account_count
+        description: >
+          Other accounts that had logged in on the device of the sender's latest successful login,
+          before the transaction. Planted, synthetic signal.
+        data_tests:
+          - not_null
+      - name: is_latest_login_foreign_ip
+        description: The sender's latest successful login came from outside their home country.
+      - name: sender_prior_dispute_count
+        description: Disputes the sender had filed before the transaction.
+        data_tests:
+          - not_null
+      - name: receiver_prior_dispute_count
+        description: Disputes already filed on transactions the receiver had received.
+        data_tests:
+          - not_null
+      - name: is_fraud
+        description: The label. Not a feature.
+        data_tests:
+          - not_null
+      - name: baseline_is_flagged_fraud
+        description: PaySim's legacy rule (transfers over 200,000), the baseline to beat. Not a feature.
+        data_tests:
+          - not_null
+      - name: audit_sender_signup_ts
+        description: Audit, not a feature. Sender's signup time.
+      - name: audit_receiver_signup_ts
+        description: Audit, not a feature. Receiver's signup time.
+      - name: audit_sender_velocity_ts
+        description: Audit, not a feature. Latest hour the sender velocity windows read.
+      - name: audit_receiver_velocity_ts
+        description: Audit, not a feature. Latest hour the receiver velocity windows read.
+      - name: audit_login_ts
+        description: Audit, not a feature. Latest login the login features read.
+      - name: audit_dispute_ts
+        description: Audit, not a feature. Latest dispute the dispute features read.

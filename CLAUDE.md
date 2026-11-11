@@ -111,12 +111,22 @@ the label, except disputes (which follow fraud, as in reality).
   amounts suffixed `_amount`.
 - **Every model** has a YAML entry with a description, a stated grain, and column descriptions.
   These feed the dbt docs site and act as the data dictionary.
-- **Risk features (intermediate):** transaction velocity per account (count and amount over
-  1h / 24h / 7d windows), account age at transaction time, amount vs the account's trailing average,
-  devices per account and accounts per device, failed logins before a transaction, prior disputes.
+- **Risk features (intermediate):** `int_account_hourly_activity` → `int_account_velocity` (activity in
+  the 1 / 24 / 168 hours before each active hour, via `macros/prior_hours_window.sql`),
+  `int_transaction_login_features` (logins and failed logins in the prior 24 h, foreign-IP latest login,
+  other accounts that used that device *before* the transaction), `int_transaction_dispute_features`
+  (disputes filed before the transaction, by the sender and on the receiver's received transactions).
+  Sender history is almost always empty in PaySim (only 900 transactions' senders had received
+  earlier), so receiver-side features carry the signal.
 - **ML feature table (`ml_transaction_features`):** one row per transaction with point-in-time-correct
-  features (only use information available **before** the transaction) and the `is_fraud` label.
-  Avoiding label leakage is a core design point; call it out in model descriptions.
+  features, the `is_fraud` label and `baseline_is_flagged_fraud`. Rules, each enforced by a test:
+  - windows end at the **previous hour** (PaySim timestamps are hourly; same-hour order is unknown);
+  - every feature group exposes an `audit_*` column with the latest source event it read, and
+    `assert_ml_features_use_only_prior_data` checks each is before `as_of_ts`. **A new feature group
+    must add its own audit column and a condition in that test**;
+  - no column containing `balance` or `mismatch` (`assert_ml_features_exclude_balances`);
+  - receiver velocity equals a brute-force recount (`assert_receiver_velocity_matches_recount`).
+  When changing any of this, break it on purpose once and confirm the test fails.
 
 ## Testing and data quality
 

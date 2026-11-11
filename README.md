@@ -164,8 +164,19 @@ erDiagram
 
 ## Key design decisions
 
-1. **Point-in-time features.** Every feature in `ml_transaction_features` uses only data available
-   before the transaction, enforced by a dedicated dbt test, to prevent label leakage.
+1. **Point-in-time features, enforced and proven.** Every feature in `ml_transaction_features` uses only
+   data from before the transaction. PaySim timestamps are hourly and transactions within an hour have
+   no reliable order, so windows end at the *previous* hour (same-hour activity is excluded, the
+   conservative choice). Even "how many other accounts used this device" counts only logins before the
+   transaction, not the device's whole history. Each feature group records the latest source event it
+   read in an `audit_*` column, and three tests guard the table:
+   - `assert_ml_features_use_only_prior_data`: every audit timestamp is before the transaction;
+   - `assert_ml_features_exclude_balances`: no balance or mismatch column exists in the built table;
+   - `assert_receiver_velocity_matches_recount`: the window functions agree with a brute-force self-join.
+
+   The tests were checked by breaking the model on purpose: letting the velocity window include the
+   current hour failed the leakage test on all 6,362,620 rows and the recount on 4,211,125; adding a
+   balance column failed the exclusion test.
 2. **Flag, don't drop, and know when a flag is a leak.** PaySim's inconsistent balances are kept and
    flagged (`has_balance_mismatch`) rather than filtered. Inconsistency is the norm, not the exception: on
    outgoing transfers the sender's balance adds up only 4.8% of the time. But the after-balances and the
@@ -195,7 +206,7 @@ _Expand each with the trade-offs you considered._
 - A leakage test on the ML feature table
 - Warn-level tests for known, rare source quirks; error-level for integrity breaks
 
-**Today:** 12 models and a seed, 127 tests; a full build on 6.36M transactions takes about 6 seconds.
+**Today:** 17 models and a seed, 154 tests; a full build on 6.36M transactions takes about 8 seconds.
 - **Staging:** keys, relationships across sources (logins → accounts and devices, disputes →
   transactions, senders and customer receivers → accounts), accepted values, ranges, and four singular
   tests (fraud only on transfers and cash-outs; timestamps inside the 31-day window; disputes filed after
@@ -203,6 +214,8 @@ _Expand each with the trade-offs you considered._
 - **Core:** primary keys; every fact foreign key resolves to its dimension; every date is in `dim_date`;
   each fact has exactly as many rows as its staging model (`dbt_utils.equal_rowcount`), so no join
   silently drops or duplicates rows.
+- **ML features:** the three leakage and correctness tests above, ranges (account ages never negative,
+  hour of day 0-23), and one row per transaction.
 - The one expected warning is the 16 zero-amount transactions.
 
 **Money is `decimal(18, 2)`.** PaySim balances are often off by exactly one cent. In floating point that

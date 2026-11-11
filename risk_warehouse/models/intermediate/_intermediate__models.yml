@@ -1,0 +1,41 @@
+models:
+  - name: int_account_hourly_activity
+    description: >
+      **Grain: one row per customer account per PaySim hour (step)** in which it sent or received
+      money: counts and amounts each way. Merchants are excluded.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["account_id", "paysim_step"]
+
+  - name: int_account_velocity
+    description: >
+      **Grain: one row per customer account per active hour.** Activity in the 1, 24 and 168
+      hours *before* that hour, excluding the hour itself (macros/prior_hours_window.sql), plus
+      `latest_source_step`, the latest hour the windows read, for the leakage test.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["account_id", "paysim_step"]
+
+  - name: int_transaction_login_features
+    description: >
+      **Grain: one row per transaction.** The sender's logins in the 24 hours before it, failed
+      attempts among them, whether the latest successful login came from abroad, and how many
+      *other* accounts had used that login's device before the transaction. Planted, synthetic
+      signal (see the README). `latest_source_ts` is the latest login read.
+    columns:
+      - name: transaction_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: int_transaction_dispute_features
+    description: >
+      **Grain: one row per transaction.** Disputes filed before it: by the sender, and on
+      transactions the receiver had received. `latest_source_ts` is the latest dispute read.
+    columns:
+      - name: transaction_id
+        data_tests:
+          - unique
+          - not_null
