@@ -221,7 +221,7 @@ models:
         data_tests:
           - not_null
       - name: is_flagged_fraud
-        description: PaySim's legacy rule flag (transfers over 200,000), the baseline to beat.
+        description: PaySim's legacy rule flag (16 rows; the documented "over 200.000" rule doesn't match the data), the baseline to beat.
         data_tests:
           - not_null
 

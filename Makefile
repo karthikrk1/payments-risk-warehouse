@@ -12,7 +12,7 @@ CI_GENERATED := data/raw/ci_generated
 CI_WAREHOUSE := warehouse/ci.duckdb
 
 .DEFAULT_GOAL := help
-.PHONY: help setup data entities load ingest deps build docs lint format clean sample ci-build
+.PHONY: help setup data entities load ingest deps build docs lint format clean sample ci-build results
 
 help: ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -43,6 +43,9 @@ build: deps ## Run and test every dbt model
 docs: deps ## Generate and serve the dbt docs site (lineage, data dictionary)
 	$(DBT) docs generate && ../$(VENV)/bin/dbt docs serve
 
+results: ## Run the analyses on the full warehouse and print Markdown tables (README Results)
+	$(PYTHON) scripts/run_analyses.py
+
 sample: ## Rebuild the committed CI sample from the full PaySim CSV
 	$(PYTHON) ingestion/make_sample.py
 
@@ -52,6 +55,8 @@ ci-build: ## Full pipeline on the committed sample into warehouse/ci.duckdb (sam
 		--warehouse $(CI_WAREHOUSE)
 	$(DBT) deps
 	$(DBT) build --target ci
+	@# Check the analyses still compile and run; their output on the skewed sample is discarded.
+	$(PYTHON) scripts/run_analyses.py --warehouse $(CI_WAREHOUSE) --target ci > /dev/null
 
 lint: ## Ruff lint and format check (same as CI)
 	$(RUFF) check .
