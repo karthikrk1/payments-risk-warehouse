@@ -100,8 +100,10 @@ _Add an ERD of the star schema here._
    flags describe the account *after* the transaction, which a real-time check wouldn't know, and in PaySim
    they nearly reveal the label. On transfers and cash-outs, the sender's balance adds up in 99.45% of
    fraudulent transactions vs 9.9% of legitimate ones, and fraud empties the sender's account exactly
-   97.7% of the time vs 0.0% for legitimate ones. So they are kept for analysis and excluded from ML
-   features; only before-transaction balances are used.
+   97.7% of the time vs 0.0% for legitimate ones. The dataset's author goes further: fraudulent
+   transactions were cancelled in the simulation, so *none* of the four balance columns should be used
+   for fraud detection, before-balances included. So every balance column is kept for analysis and
+   data-quality reporting, and none feeds an ML feature.
 3. **Incremental fact table.** `fct_transactions` builds incrementally on `transaction_id`, mirroring how
    high-volume event data is processed in production.
 4. **Portable SQL.** Models target DuckDB locally but avoid dialect-specific SQL so they port to
@@ -157,17 +159,20 @@ git-ignored. About 1 GB of disk in total.
 
 - `main` is protected: changes land only through pull requests, and `main` can't be force-pushed
   or deleted.
-- Every pull request runs [CI](.github/workflows/ci.yml): **lint** (ruff) and **dbt** (`dbt deps`
-  + `dbt parse`). Both must pass before merging.
-- Dependabot opens weekly pull requests for GitHub Actions and Python packages.
+- Every pull request runs [CI](.github/workflows/ci.yml): **lint** (ruff) and **dbt**, which runs the
+  whole pipeline (generate entities, load raw, `dbt build` with every test) on a committed
+  4,904-row PaySim sample in [`data/sample/`](data/sample/README.md). Both must pass before merging.
+- Dependabot opens weekly pull requests for GitHub Actions and the direct Python dependencies.
 
 Run the same checks locally:
 
 ```bash
-uv pip install -r requirements-dev.txt
-ruff check . && ruff format --check .
-cd risk_warehouse && dbt deps && dbt parse
+make lint       # ruff
+make ci-build   # pipeline on the sample -> warehouse/ci.duckdb (your full warehouse is untouched)
 ```
+
+`make sample` rebuilds the sample from the full CSV, deterministically. Fraud is over-represented in
+it (12% vs 0.13%) so tests have cases to work on; results always come from the full data.
 
 ## Roadmap
 

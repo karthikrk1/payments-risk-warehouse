@@ -10,11 +10,14 @@ models:
       transfers and cash-outs the sender's balance usually does not equal "before minus amount".
 
 
-      **Leakage warning:** the `*_after_amount` balances and the `has_*_balance_mismatch` flags
-      describe the account *after* the transaction, which a real-time fraud check would not
-      know. In PaySim they almost reveal the label (fraud usually empties the sender's account
-      exactly). They are kept for analysis but must not be used as ML features; only the
-      `*_before_amount` balances are available at decision time.
+      **Leakage warning: no balance column is an ML feature.** The `*_after_amount` balances and
+      the `has_*_balance_mismatch` flags describe the account *after* the transaction, which a
+      real-time fraud check would not know, and in PaySim they almost reveal the label (fraud
+      empties the sender's account exactly 97.7% of the time vs 0.0% for legitimate transfers and
+      cash-outs). The dataset's author also warns that fraudulent transactions were cancelled in
+      the simulation, so none of the four balance columns should be used for fraud detection;
+      that includes the `*_before_amount` balances. All are kept for analysis and data-quality
+      reporting.
     columns:
       - name: transaction_id
         description: Primary key. The transaction's 1-based data row in the PaySim file.
@@ -73,7 +76,9 @@ models:
         data_tests:
           - not_null
       - name: sender_balance_before_amount
-        description: Sender balance before the transaction. Available at decision time.
+        description: >
+          Sender balance before the transaction. Not an ML feature: the dataset's author says
+          balance columns must not be used for fraud detection (fraud was cancelled in the simulation).
         data_tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -87,7 +92,7 @@ models:
               arguments:
                 min_value: 0
       - name: receiver_balance_before_amount
-        description: Receiver balance before the transaction. Null for merchants.
+        description: Receiver balance before the transaction. Null for merchants. Not an ML feature (see the model description).
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:

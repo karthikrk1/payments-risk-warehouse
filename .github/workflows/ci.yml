@@ -40,12 +40,12 @@ jobs:
       - name: Ruff format check
         run: .venv/bin/ruff format --check .
 
+  # Runs the whole pipeline (generate entities, load raw, dbt build with every test) on the
+  # committed PaySim sample in data/sample/, so model, test and dependency changes are exercised
+  # on real data, not just parsed.
   dbt:
     name: dbt
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: risk_warehouse
     steps:
       - uses: actions/checkout@v7
 
@@ -55,16 +55,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "requirements*.txt"
 
-      - name: Install dbt
-        working-directory: .
+      - name: Install dependencies
         run: |
           uv venv --python 3.12
           uv pip install -r requirements.txt
 
-      - name: dbt deps
-        run: ../.venv/bin/dbt deps
-
-      # Validates the project: config, Jinja, refs and YAML. No data needed.
-      # Once ingestion lands, this becomes `dbt build` against a small committed sample.
-      - name: dbt parse
-        run: ../.venv/bin/dbt parse
+      - name: Ingest sample and dbt build
+        run: make ci-build

@@ -65,8 +65,11 @@ Known characteristics to handle explicitly and document:
 - **The after-balances and the mismatch flags are post-transaction and must never be ML features.**
   A real-time check would not know them, and in PaySim they almost reveal the label (on transfers and
   cash-outs the sender's balance adds up for 99.45% of fraud vs 9.9% of legitimate rows; fraud empties
-  the sender's account exactly 97.7% of the time vs 0.0%). Only the
-  `*_before_amount` balances may feed features. Use them for analysis and data-quality reporting only.
+  the sender's account exactly 97.7% of the time vs 0.0%).
+- **No balance column may feed an ML feature, the `*_before_amount` ones included.** The dataset's own
+  description says: "Transactions which are detected as fraud are cancelled, so for fraud detection
+  these columns (oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest) must not be used."
+  Use balances for analysis and data-quality reporting only.
 - Do money arithmetic in `decimal(18, 2)`, never floating point: PaySim balances are often off by
   exactly one cent, which floating point turns into 0.0100000000093 and misreads as a mismatch.
 - `isFlaggedFraud` is the legacy rule-based flag; treat it as a baseline to compare against.
@@ -130,6 +133,8 @@ make ingest    # generate_entities.py, then load_raw.py
 make build     # dbt deps + dbt build (run and test everything)
 make docs      # dbt docs generate + serve
 make lint      # ruff, same as CI
+make ci-build  # whole pipeline on data/sample/paysim_sample.csv -> warehouse/ci.duckdb, same as CI
+make sample    # rebuild the committed sample from the full CSV (deterministic)
 ```
 
 ## Working rules for Claude
@@ -137,10 +142,13 @@ make lint      # ruff, same as CI
 - Make small, reviewable changes and explain the design reasoning in the reply. After changing models,
   run `dbt build --select <model>+` and fix failures before moving on.
 - Do not invent results or metrics. The README results section is filled in only from real query output.
-- Never commit data files, `.duckdb` files, `.env` or credentials.
+- Never commit data files, `.duckdb` files, `.env` or credentials. The one exception is the CI sample
+  `data/sample/paysim_sample.csv` (CC BY-SA 4.0, attribution in `data/sample/README.md`); regenerate it
+  with `make sample`, never edit it by hand. Rates in the sample are skewed (12% fraud); never quote
+  results from it.
 - `main` is protected: no direct pushes, no force pushes, no deletion. Work on a branch and open a
-  pull request; it merges only when the CI checks `lint` (ruff) and `dbt` pass. Run
-  `ruff check . && ruff format --check .` and `dbt parse` (or `dbt build`) locally before pushing.
+  pull request; it merges only when the CI checks `lint` (ruff) and `dbt` (the full pipeline on the
+  sample) pass. Run `make lint` and `make ci-build` locally before pushing.
 - New Python dependencies go in `requirements.txt` (runtime) or `requirements-dev.txt` (tools), pinned.
 - Keep the README and `docs/architecture.md` in sync when the architecture changes.
 - Prefer DuckDB-compatible ANSI SQL that would port to Snowflake with minimal changes; note any
