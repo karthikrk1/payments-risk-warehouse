@@ -69,7 +69,8 @@ Profiled on load (6,362,620 transactions):
 | `raw.app_disputes` | 9,896 | One row per disputed transaction, filed 1 hour to 14 days after it |
 
 - **Reproducible:** every value is derived from an MD5 hash of a fixed seed and a key, not a random-number
-  generator, so a re-run produces byte-identical files even though DuckDB runs SQL in parallel.
+  generator, so a re-run produces identical data even though DuckDB runs SQL in parallel (byte-identical
+  files on the same DuckDB version; Parquet files record the version that wrote them).
 - **Planted signal, on purpose:** fraudulent senders more often have failed logins before the transaction
   (30% vs 4% of transactions) and more often use a device shared with other fraudulent accounts (30% vs 1%).
   This lets the feature pipeline be checked end to end. **It is synthetic:** features built on logins and
@@ -93,8 +94,14 @@ _Add an ERD of the star schema here._
 
 1. **Point-in-time features.** Every feature in `ml_transaction_features` uses only data available
    before the transaction, enforced by a dedicated dbt test, to prevent label leakage.
-2. **Flag, don't drop.** PaySim's inconsistent balance fields are kept and flagged
-   (`has_balance_mismatch`) rather than filtered, because data anomalies are often risk signals.
+2. **Flag, don't drop, and know when a flag is a leak.** PaySim's inconsistent balances are kept and
+   flagged (`has_balance_mismatch`) rather than filtered. Inconsistency is the norm, not the exception: on
+   outgoing transfers the sender's balance adds up only 4.8% of the time. But the after-balances and the
+   flags describe the account *after* the transaction, which a real-time check wouldn't know, and in PaySim
+   they nearly reveal the label. On transfers and cash-outs, the sender's balance adds up in 99.45% of
+   fraudulent transactions vs 9.9% of legitimate ones, and fraud empties the sender's account exactly
+   97.7% of the time vs 0.0% for legitimate ones. So they are kept for analysis and excluded from ML
+   features; only before-transaction balances are used.
 3. **Incremental fact table.** `fct_transactions` builds incrementally on `transaction_id`, mirroring how
    high-volume event data is processed in production.
 4. **Portable SQL.** Models target DuckDB locally but avoid dialect-specific SQL so they port to
@@ -107,7 +114,17 @@ _Expand each with the trade-offs you considered._
 - Primary-key, foreign-key and accepted-value tests on every model
 - Range and freshness checks on amounts and timestamps
 - A leakage test on the ML feature table
-- Warn-level tests for known source quirks; error-level for integrity breaks
+- Warn-level tests for known, rare source quirks; error-level for integrity breaks
+
+**Staging today:** 5 models, 62 tests: keys, relationships across sources (logins → accounts and
+devices, disputes → transactions, senders and customer receivers → accounts), accepted values, ranges,
+and four singular tests (fraud only on transfers and cash-outs; timestamps inside the 31-day window;
+disputes filed after their transaction by its sender; accounts opened before their first transaction).
+The one expected warning is the 16 zero-amount transactions.
+
+**Money is `decimal(18, 2)`.** PaySim balances are often off by exactly one cent. In floating point that
+difference reads as 0.0100000000093, over a 0.01 tolerance, so a float-based check misclassified about
+680k transactions.
 
 ## Results
 

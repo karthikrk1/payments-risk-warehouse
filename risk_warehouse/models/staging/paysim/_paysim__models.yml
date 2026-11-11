@@ -1,0 +1,124 @@
+models:
+  - name: stg_paysim__transactions
+    description: >
+      **Grain: one row per PaySim transaction.** Renamed to project conventions, amounts as
+      decimal(18, 2), `transaction_ts` derived from `step` and the `paysim_start_date` var, and
+      merchant balances (always 0 in PaySim, meaning unknown) set to null.
+
+
+      Balance inconsistencies are flagged, never dropped. They are not rare: on outgoing
+      transfers and cash-outs the sender's balance usually does not equal "before minus amount".
+
+
+      **Leakage warning:** the `*_after_amount` balances and the `has_*_balance_mismatch` flags
+      describe the account *after* the transaction, which a real-time fraud check would not
+      know. In PaySim they almost reveal the label (fraud usually empties the sender's account
+      exactly). They are kept for analysis but must not be used as ML features; only the
+      `*_before_amount` balances are available at decision time.
+    columns:
+      - name: transaction_id
+        description: Primary key. The transaction's 1-based data row in the PaySim file.
+        data_tests:
+          - unique
+          - not_null
+      - name: paysim_step
+        description: PaySim's hour index (1 = the first hour).
+        data_tests:
+          - not_null
+      - name: transaction_ts
+        description: "`paysim_start_date` + (step - 1) hours. Hour precision only."
+        data_tests:
+          - not_null
+      - name: transaction_type
+        description: Lower-cased PaySim type.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["cash_in", "cash_out", "debit", "payment", "transfer"]
+      - name: transaction_amount
+        description: Amount moved. Never negative; 16 PaySim rows are 0.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+          - dbt_expectations.expect_column_values_to_be_between:
+              name: transaction_amount_positive
+              arguments:
+                min_value: 0
+                strictly: true
+              config:
+                severity: warn
+      - name: sender_account_id
+        description: Sending customer account (always a C account in PaySim).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_app__accounts')
+                field: account_id
+      - name: receiver_account_id
+        description: Receiving account. C = customer, M = merchant.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_app__accounts')
+                field: account_id
+              config:
+                where: "not is_merchant_receiver"
+      - name: is_merchant_receiver
+        description: True when the receiver is a merchant (M account). Only `payment` goes to merchants.
+        data_tests:
+          - not_null
+      - name: sender_balance_before_amount
+        description: Sender balance before the transaction. Available at decision time.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+      - name: sender_balance_after_amount
+        description: Sender balance after the transaction. Post-transaction; not an ML feature.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+      - name: receiver_balance_before_amount
+        description: Receiver balance before the transaction. Null for merchants.
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+      - name: receiver_balance_after_amount
+        description: Receiver balance after the transaction. Null for merchants. Post-transaction; not an ML feature.
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+      - name: has_sender_balance_mismatch
+        description: >
+          Sender's after-balance differs from before -/+ amount by more than 0.01 (cash_in adds,
+          every other type subtracts). Post-transaction; not an ML feature.
+        data_tests:
+          - not_null
+      - name: has_receiver_balance_mismatch
+        description: >
+          Receiver's after-balance differs from before +/- amount by more than 0.01 (cash_in
+          subtracts, other types add). Null for merchants. Post-transaction; not an ML feature.
+      - name: has_balance_mismatch
+        description: Either side mismatches. Post-transaction; not an ML feature.
+        data_tests:
+          - not_null
+      - name: is_fraud
+        description: The label. True if PaySim simulated the transaction as fraud.
+        data_tests:
+          - not_null
+      - name: is_flagged_fraud
+        description: PaySim's legacy rule flag, kept as a baseline to compare against.
+        data_tests:
+          - not_null
+      - name: _loaded_at
+        description: When the raw row was loaded.

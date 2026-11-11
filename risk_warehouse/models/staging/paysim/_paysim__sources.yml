@@ -1,0 +1,39 @@
+sources:
+  - name: paysim
+    description: >
+      PaySim, a synthetic mobile-money dataset (Kaggle: ealaxi/paysim1, CC BY-SA 4.0), loaded
+      as-is by ingestion/load_raw.py.
+    schema: raw
+    tables:
+      - name: paysim_transactions
+        description: >
+          One row per PaySim transaction, with the source column names. `step` is an hour index
+          (1 to 743, about 31 days). Merchant accounts (IDs starting with M) only receive, and
+          their balance columns are always 0, meaning unknown.
+        columns:
+          - name: source_row_number
+            description: 1-based data row in the CSV, added on load. PaySim has no transaction ID.
+          - name: step
+            description: Hour index from the start of the simulation, starting at 1.
+          - name: type
+            description: CASH_IN, CASH_OUT, DEBIT, PAYMENT or TRANSFER.
+          - name: amount
+            description: Transaction amount in local currency.
+          - name: nameOrig
+            description: Sending (customer) account.
+          - name: oldbalanceOrg
+            description: Sender balance before the transaction.
+          - name: newbalanceOrig
+            description: Sender balance after the transaction.
+          - name: nameDest
+            description: Receiving account. C = customer, M = merchant.
+          - name: oldbalanceDest
+            description: Receiver balance before the transaction (0 for merchants).
+          - name: newbalanceDest
+            description: Receiver balance after the transaction (0 for merchants).
+          - name: isFraud
+            description: 1 if the simulation marked the transaction as fraud.
+          - name: isFlaggedFraud
+            description: 1 if PaySim's legacy rule flagged it (a transfer over 200,000).
+          - name: _loaded_at
+            description: When load_raw.py loaded the row.
