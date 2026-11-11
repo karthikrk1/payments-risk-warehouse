@@ -8,3 +8,9 @@ risk_warehouse:
       # Relative to risk_warehouse/, where dbt is run from.
       path: ../warehouse/risk.duckdb
       threads: 4
+    # Built from the committed sample by `make ci-build` (and in CI). Separate file, so it never
+    # touches the full dev warehouse.
+    ci:
+      type: duckdb
+      path: ../warehouse/ci.duckdb
+      threads: 4
