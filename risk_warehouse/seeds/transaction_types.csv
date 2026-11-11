@@ -1,0 +1,6 @@
+transaction_type,transaction_type_label,sender_direction,receiver_kind,description
+cash_in,Cash in,in,customer,The customer pays in cash through an agent; money arrives in the customer's account.
+cash_out,Cash out,out,customer,The customer withdraws cash through an agent.
+debit,Debit,out,customer,Money moves from the mobile-money account to a bank account.
+payment,Payment,out,merchant,The customer pays a merchant for goods or services.
+transfer,Transfer,out,customer,The customer sends money to another customer.

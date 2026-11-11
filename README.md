@@ -83,12 +83,84 @@ Profiled on load (6,362,620 transactions):
 
 ## Data model
 
-_Add an ERD of the star schema here._
+The star schema in `core` (row counts on the full data):
 
-- `fct_transactions` — one row per transaction (incremental)
-- `fct_logins` — one row per login attempt
-- `fct_disputes` — one row per dispute
-- `dim_account`, `dim_device`, `dim_date`, `dim_transaction_type`
+```mermaid
+erDiagram
+    dim_account ||--o{ fct_transactions : "sends (sender_account_key)"
+    dim_account ||--o{ fct_transactions : "receives (receiver_account_key)"
+    dim_transaction_type ||--o{ fct_transactions : "transaction_type_key"
+    dim_date ||--o{ fct_transactions : "transaction_date"
+    dim_account ||--o{ fct_logins : "account_key"
+    dim_device ||--o{ fct_logins : "device_key"
+    dim_date ||--o{ fct_logins : "login_date"
+    fct_transactions ||--o| fct_disputes : "transaction_id"
+    dim_account ||--o{ fct_disputes : "account_key"
+    dim_date ||--o{ fct_disputes : "filed_date"
+
+    fct_transactions {
+        bigint transaction_id PK
+        string sender_account_key FK
+        string receiver_account_key FK
+        string transaction_type_key FK
+        date transaction_date FK
+        decimal transaction_amount
+        boolean is_fraud
+        boolean is_flagged_fraud
+    }
+    fct_logins {
+        string login_id PK
+        string account_key FK
+        string device_key FK
+        date login_date FK
+        boolean is_success
+        boolean is_foreign_ip
+    }
+    fct_disputes {
+        string dispute_id PK
+        bigint transaction_id FK
+        string account_key FK
+        date filed_date FK
+        int hours_to_file
+        string dispute_status
+    }
+    dim_account {
+        string account_key PK
+        string account_id
+        string account_type
+        timestamp signup_ts
+        string kyc_status
+    }
+    dim_device {
+        string device_key PK
+        string device_id
+        string device_os
+    }
+    dim_transaction_type {
+        string transaction_type_key PK
+        string transaction_type
+        string sender_direction
+    }
+    dim_date {
+        date date_day PK
+        boolean is_weekend
+    }
+```
+
+| Model | Grain | Rows |
+|---|---|---:|
+| `fct_transactions` | one row per transaction (incremental) | 6,362,620 |
+| `fct_logins` | one row per login attempt | 6,750,849 |
+| `fct_disputes` | one row per dispute | 9,896 |
+| `dim_account` | one row per account: 6,923,499 customers + 2,150,401 merchants | 9,073,900 |
+| `dim_device` | one row per device | 6,323,442 |
+| `dim_date` | one row per day, 2021-01-01 to 2024-02-29 | 1,155 |
+| `dim_transaction_type` | one row per type, from a seed | 5 |
+
+- **Merchants are in `dim_account`** (with no signup, KYC or country), so every receiver key resolves.
+- **Surrogate keys** are `dbt_utils.generate_surrogate_key` of the natural key. Facts compute the same hash
+  instead of joining to the dimension; relationship tests prove every key resolves. Natural keys are kept
+  alongside.
 
 ## Key design decisions
 
@@ -104,8 +176,13 @@ _Add an ERD of the star schema here._
    transactions were cancelled in the simulation, so *none* of the four balance columns should be used
    for fraud detection, before-balances included. So every balance column is kept for analysis and
    data-quality reporting, and none feeds an ML feature.
-3. **Incremental fact table.** `fct_transactions` builds incrementally on `transaction_id`, mirroring how
-   high-volume event data is processed in production.
+3. **Incremental fact table.** `fct_transactions` builds incrementally (`delete+insert` on
+   `transaction_id`), mirroring how high-volume event data is processed in production. A later run loads
+   only transactions with a higher `transaction_id` than any already loaded. That rule is only correct
+   because `transaction_id` is the row number in a file that is in time order (checked: `step` never
+   decreases), so new data always has higher ids; `delete+insert` makes a re-processed row replace rather
+   than duplicate. Verified by deleting the last 362,620 rows and re-running: they came back in 0.25 s,
+   with 0 rows differing from a full build. A no-op run takes 0.05 s against about 2 s for a full build.
 4. **Portable SQL.** Models target DuckDB locally but avoid dialect-specific SQL so they port to
    Snowflake with minimal changes.
 
@@ -118,11 +195,15 @@ _Expand each with the trade-offs you considered._
 - A leakage test on the ML feature table
 - Warn-level tests for known, rare source quirks; error-level for integrity breaks
 
-**Staging today:** 5 models, 62 tests: keys, relationships across sources (logins → accounts and
-devices, disputes → transactions, senders and customer receivers → accounts), accepted values, ranges,
-and four singular tests (fraud only on transfers and cash-outs; timestamps inside the 31-day window;
-disputes filed after their transaction by its sender; accounts opened before their first transaction).
-The one expected warning is the 16 zero-amount transactions.
+**Today:** 12 models and a seed, 127 tests; a full build on 6.36M transactions takes about 6 seconds.
+- **Staging:** keys, relationships across sources (logins → accounts and devices, disputes →
+  transactions, senders and customer receivers → accounts), accepted values, ranges, and four singular
+  tests (fraud only on transfers and cash-outs; timestamps inside the 31-day window; disputes filed after
+  their transaction by its sender; accounts opened before their first transaction).
+- **Core:** primary keys; every fact foreign key resolves to its dimension; every date is in `dim_date`;
+  each fact has exactly as many rows as its staging model (`dbt_utils.equal_rowcount`), so no join
+  silently drops or duplicates rows.
+- The one expected warning is the 16 zero-amount transactions.
 
 **Money is `decimal(18, 2)`.** PaySim balances are often off by exactly one cent. In floating point that
 difference reads as 0.0100000000093, over a 0.01 tolerance, so a float-based check misclassified about
