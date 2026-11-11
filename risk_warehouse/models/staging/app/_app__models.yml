@@ -1,0 +1,148 @@
+models:
+  - name: stg_app__accounts
+    description: >
+      **Grain: one row per customer account** (every C account in PaySim, sending or
+      receiving). Merchants are not customers and have no row.
+    columns:
+      - name: account_id
+        description: Primary key. PaySim account ID (C...).
+        data_tests:
+          - unique
+          - not_null
+      - name: signup_ts
+        description: When the account was opened. Always before its first transaction.
+        data_tests:
+          - not_null
+      - name: kyc_status
+        description: Identity-verification status.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["verified", "pending", "unverified"]
+      - name: country_code
+        description: Account's home country, ISO 3166-1 alpha-2.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_value_lengths_to_equal:
+              arguments:
+                value: 2
+      - name: _loaded_at
+        description: When the raw row was loaded.
+
+  - name: stg_app__devices
+    description: "**Grain: one row per device** seen in at least one login."
+    columns:
+      - name: device_id
+        description: Primary key. Opaque device ID.
+        data_tests:
+          - unique
+          - not_null
+      - name: device_os
+        description: Device platform.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["ios", "android", "web"]
+      - name: first_seen_ts
+        description: Earliest login from this device.
+        data_tests:
+          - not_null
+      - name: _loaded_at
+        description: When the raw row was loaded.
+
+  - name: stg_app__logins
+    description: >
+      **Grain: one row per login attempt.** Each sending transaction has one successful login
+      1-30 minutes before it, plus any failed attempts before that. Failed logins and shared
+      devices carry a planted, synthetic fraud signal (see the README).
+    columns:
+      - name: login_id
+        description: Primary key.
+        data_tests:
+          - unique
+          - not_null
+      - name: account_id
+        description: Account that attempted the login.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_app__accounts')
+                field: account_id
+      - name: device_id
+        description: Device the attempt came from.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_app__devices')
+                field: device_id
+      - name: login_ts
+        description: When the attempt happened (minute precision).
+        data_tests:
+          - not_null
+      - name: is_success
+        description: Whether the attempt succeeded.
+        data_tests:
+          - not_null
+      - name: ip_country_code
+        description: Country of the login IP, ISO 3166-1 alpha-2.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_value_lengths_to_equal:
+              arguments:
+                value: 2
+      - name: _loaded_at
+        description: When the raw row was loaded.
+
+  - name: stg_app__disputes
+    description: >
+      **Grain: one row per disputed transaction.** Filed by the sender 1 hour to 14 days after
+      the transaction, so some fall after PaySim's 31-day window. Disputes follow fraud, as in
+      reality, so they are known only after the fact: a feature may use a dispute only if it
+      was filed before the transaction being scored.
+    columns:
+      - name: dispute_id
+        description: Primary key.
+        data_tests:
+          - unique
+          - not_null
+      - name: transaction_id
+        description: The disputed transaction. At most one dispute per transaction.
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_paysim__transactions')
+                field: transaction_id
+      - name: account_id
+        description: Account that filed the dispute (the transaction's sender).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_app__accounts')
+                field: account_id
+      - name: filed_ts
+        description: When the dispute was filed.
+        data_tests:
+          - not_null
+      - name: dispute_reason
+        description: Reason given by the account holder.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["unauthorized", "not_received", "other"]
+      - name: dispute_status
+        description: Outcome so far. "won" means decided in the account holder's favour.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["open", "won", "lost"]
+      - name: _loaded_at
+        description: When the raw row was loaded.

@@ -59,8 +59,16 @@ Known characteristics to handle explicitly and document:
   fixed anchor date; keep the anchor in a dbt var `paysim_start_date`.
 - Fraud only occurs in `TRANSFER` and `CASH_OUT` types.
 - Account IDs starting with `M` are merchants; they have no balance information.
-- Balance fields are frequently inconsistent with `amount`. Do not drop these rows; flag them
-  (`has_balance_mismatch`) and treat the flag as a candidate feature.
+- Balance fields are frequently inconsistent with `amount` (on outgoing transfers and cash-outs the
+  sender's balance is consistent only 4.8% / 11.5% of the time). Do not drop these rows; flag them
+  (`has_sender_balance_mismatch`, `has_receiver_balance_mismatch`, `has_balance_mismatch` in staging).
+- **The after-balances and the mismatch flags are post-transaction and must never be ML features.**
+  A real-time check would not know them, and in PaySim they almost reveal the label (on transfers and
+  cash-outs the sender's balance adds up for 99.45% of fraud vs 9.9% of legitimate rows; fraud empties
+  the sender's account exactly 97.7% of the time vs 0.0%). Only the
+  `*_before_amount` balances may feed features. Use them for analysis and data-quality reporting only.
+- Do money arithmetic in `decimal(18, 2)`, never floating point: PaySim balances are often off by
+  exactly one cent, which floating point turns into 0.0100000000093 and misreads as a mismatch.
 - `isFlaggedFraud` is the legacy rule-based flag; treat it as a baseline to compare against.
 - Facts measured on load: 743 steps; 8,213 fraud rows (0.13%); `isFlaggedFraud` fires 16 times;
   99.85% of senders (`nameOrig`) appear once, so build velocity for receivers too; 16 rows have amount 0.
@@ -71,7 +79,8 @@ Known characteristics to handle explicitly and document:
 and loaded by `ingestion/load_raw.py` as `raw.app_accounts`, `raw.app_devices`, `raw.app_logins`,
 `raw.app_disputes`: accounts (signup time, KYC status, country), devices (OS, first seen), login
 attempts (success/failure, device, IP country) and disputes (reason, status, filed after their
-transaction). Every value is derived from MD5(seed | key), so output is byte-identical on re-run.
+transaction). Every value is derived from MD5(seed | key), so the data is identical on every re-run
+(files are byte-identical on the same DuckDB version; Parquet records the writer version).
 **Logins and devices carry a planted fraud signal on purpose** (`PLANTED_SIGNAL`): fraudulent senders
 get more failed logins and shared "ring" devices. Always describe results on those features as
 synthetic, never as evidence of real-world predictiveness. Nothing else in the generator depends on
@@ -102,9 +111,15 @@ the label, except disputes (which follow fraud, as in reality).
 
 - Every primary key: `unique` + `not_null`. Every foreign key: `relationships`.
 - `accepted_values` on enumerations (transaction type, KYC status, dispute status).
-- Use `dbt_expectations` or singular tests for ranges (amount > 0, timestamps within the data window).
+- Use `dbt_expectations` or singular tests for ranges (amount >= 0 as error, amount > 0 as warn because
+  of the 16 zero rows; timestamps within the data window). Singular tests live in `risk_warehouse/tests/`.
 - Add a singular test that asserts no ML feature uses data from after the transaction timestamp.
-- Use `severity: warn` for known PaySim quirks (balance mismatches) and `error` for real integrity breaks.
+- Use `severity: warn` for known, rare PaySim quirks and `error` for real integrity breaks. Don't add a
+  test that fires on millions of rows by design (balance mismatches are the norm, not a quirk): flag it
+  as a column instead.
+- Generic test parameters go under `arguments:` (dbt 1.10+); the old flat style is deprecated.
+- Custom schemas are used as-is (`macros/generate_schema_name.sql`): models land in `staging`,
+  `intermediate`, `core`, `ml`, not `main_staging`.
 
 ## Commands
 
