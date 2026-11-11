@@ -48,6 +48,38 @@ _Replace with a proper diagram in `docs/architecture.md` (e.g. Mermaid or Excali
 
 All data is synthetic; no real customer data is used.
 
+### What PaySim looks like
+
+Profiled on load (6,362,620 transactions):
+- **743 hourly steps,** about 31 days. `transaction_ts` = `paysim_start_date` (2024-01-01) + (step − 1) hours.
+- **8,213 fraudulent transactions (0.13%),** all `TRANSFER` or `CASH_OUT`. The legacy `isFlaggedFraud`
+  rule fires on only 16.
+- **99.85% of sending accounts appear exactly once,** so per-sender velocity is almost always empty.
+  Receiving accounts repeat (572k accounts receive 4.2M transactions), so velocity is built on both sides.
+- **16 transactions have amount 0;** the amount check is a warning, not an error.
+- PaySim has no transaction ID, so `source_row_number` (the data row in the file) becomes `transaction_id`.
+
+### How the synthetic entities are generated
+
+| Table | Rows | Grain |
+|---|---:|---|
+| `raw.app_accounts` | 6,923,499 | One row per customer account in PaySim (merchants excluded) |
+| `raw.app_devices` | 6,323,442 | One row per device seen in a login |
+| `raw.app_logins` | 6,750,849 | One row per login attempt: a successful login before each sending transaction, plus any failed attempts |
+| `raw.app_disputes` | 9,896 | One row per disputed transaction, filed 1 hour to 14 days after it |
+
+- **Reproducible:** every value is derived from an MD5 hash of a fixed seed and a key, not a random-number
+  generator, so a re-run produces byte-identical files even though DuckDB runs SQL in parallel.
+- **Planted signal, on purpose:** fraudulent senders more often have failed logins before the transaction
+  (30% vs 4% of transactions) and more often use a device shared with other fraudulent accounts (30% vs 1%).
+  This lets the feature pipeline be checked end to end. **It is synthetic:** features built on logins and
+  devices show that the pipeline works, not that these signals predict real fraud. The settings are in
+  `PLANTED_SIGNAL` in `generate_entities.py` and recorded in `data/raw/generated/manifest.json`.
+- **Independent of the label:** account age, KYC status, country, login IP country and device OS.
+- **Disputes follow fraud,** as they do in reality: 40% of fraudulent transactions are disputed, and a small
+  share of legitimate ones. A dispute is always filed after its transaction, and some are filed after the
+  31-day window ends.
+
 ## Data model
 
 _Add an ERD of the star schema here._
@@ -84,18 +116,25 @@ _Fill in from real query output, e.g. fraud rate by transaction type, how the le
 
 ## Quickstart
 
-Requires macOS or Linux, [uv](https://docs.astral.sh/uv/) and the PaySim CSV in `data/raw/`.
+Requires macOS or Linux and [uv](https://docs.astral.sh/uv/). `make help` lists every target.
 
 ```bash
 git clone https://github.com/karthikrk1/payments-risk-warehouse.git
 cd payments-risk-warehouse
-uv venv --python 3.12 && source .venv/bin/activate
-uv pip install -r requirements.txt
-python ingestion/generate_entities.py
-python ingestion/load_raw.py
-cd risk_warehouse && dbt deps && dbt build
-dbt docs generate && dbt docs serve
+make setup     # .venv with Python 3.12, dependencies and dev tools
+make data      # PaySim from Kaggle -> data/raw/paysim.csv (needs a Kaggle API token, see below)
+make ingest    # generate entities (~10 s), load everything into DuckDB's raw schema (~10 s)
+make build     # dbt deps + dbt build
+make docs      # dbt docs: lineage graph and data dictionary
 ```
+
+**Kaggle token:** on kaggle.com, Settings → API → Create New Token, then move the downloaded
+`kaggle.json` to `~/.kaggle/kaggle.json` and run `chmod 600 ~/.kaggle/kaggle.json`. Or download
+[PaySim](https://www.kaggle.com/datasets/ealaxi/paysim1) in the browser and save the CSV as
+`data/raw/paysim.csv`.
+
+Generated files go to `data/raw/generated/` and the warehouse to `warehouse/risk.duckdb`; both are
+git-ignored. About 1 GB of disk in total.
 
 ## Development workflow
 

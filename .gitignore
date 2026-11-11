@@ -6,5 +6,6 @@ dbt_packages/
 *.duckdb.wal
 .env
 .DS_Store
+__pycache__/
 data/raw
 .user.yml
