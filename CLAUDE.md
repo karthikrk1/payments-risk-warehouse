@@ -172,6 +172,11 @@ make sample    # rebuild the committed sample from the full CSV (deterministic)
 - `main` is protected: no direct pushes, no force pushes, no deletion. Work on a branch and open a
   pull request; it merges only when the CI checks `lint` (ruff) and `dbt` (the full pipeline on the
   sample) pass. Run `make lint` and `make ci-build` locally before pushing.
+- Every merge to `main` republishes the dbt docs site (`.github/workflows/docs.yml`, GitHub Pages:
+  https://karthikrk1.github.io/payments-risk-warehouse/), built from the sample. Model and column
+  descriptions are public there, so keep them accurate and free of anything that isn't in the repo.
+- Pin GitHub Actions by full version or commit SHA when the action has no moving major tag
+  (setup-uv only publishes full tags); check that a tag exists before using it.
 - New Python dependencies go in `requirements.txt` (runtime) or `requirements-dev.txt` (tools), pinned.
 - Keep the README and `docs/architecture.md` in sync when the architecture changes.
 - Prefer DuckDB-compatible ANSI SQL that would port to Snowflake with minimal changes; note any
