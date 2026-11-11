@@ -62,11 +62,20 @@ Known characteristics to handle explicitly and document:
 - Balance fields are frequently inconsistent with `amount`. Do not drop these rows; flag them
   (`has_balance_mismatch`) and treat the flag as a candidate feature.
 - `isFlaggedFraud` is the legacy rule-based flag; treat it as a baseline to compare against.
+- Facts measured on load: 743 steps; 8,213 fraud rows (0.13%); `isFlaggedFraud` fires 16 times;
+  99.85% of senders (`nameOrig`) appear once, so build velocity for receivers too; 16 rows have amount 0.
+- The file lives at `data/raw/paysim.csv`. PaySim has no transaction ID: `source_row_number` (added by
+  `ingestion/common.py`, the 1-based data row) becomes `transaction_id` in staging.
 
-**Synthetic entities** from `ingestion/generate_entities.py` (fixed random seed, so output is
-reproducible): accounts (signup date, KYC status, country), devices, login events (success/failure,
-device, IP country) and disputes (linked to a subset of transactions, with weighting towards fraudulent
-ones). These cover the identity, account-access and disputes domains that PaySim lacks.
+**Synthetic entities** from `ingestion/generate_entities.py`, written to `data/raw/generated/*.parquet`
+and loaded by `ingestion/load_raw.py` as `raw.app_accounts`, `raw.app_devices`, `raw.app_logins`,
+`raw.app_disputes`: accounts (signup time, KYC status, country), devices (OS, first seen), login
+attempts (success/failure, device, IP country) and disputes (reason, status, filed after their
+transaction). Every value is derived from MD5(seed | key), so output is byte-identical on re-run.
+**Logins and devices carry a planted fraud signal on purpose** (`PLANTED_SIGNAL`): fraudulent senders
+get more failed logins and shared "ring" devices. Always describe results on those features as
+synthetic, never as evidence of real-world predictiveness. Nothing else in the generator depends on
+the label, except disputes (which follow fraud, as in reality).
 
 ## Modelling conventions
 
@@ -100,11 +109,12 @@ ones). These cover the identity, account-access and disputes domains that PaySim
 ## Commands
 
 ```bash
-source .venv/bin/activate
-python ingestion/generate_entities.py
-python ingestion/load_raw.py
-cd risk_warehouse && dbt deps && dbt build    # run and test everything
-dbt docs generate && dbt docs serve           # lineage graph and data dictionary
+make help      # list targets
+make setup     # .venv (Python 3.12) + requirements-dev.txt
+make ingest    # generate_entities.py, then load_raw.py
+make build     # dbt deps + dbt build (run and test everything)
+make docs      # dbt docs generate + serve
+make lint      # ruff, same as CI
 ```
 
 ## Working rules for Claude
