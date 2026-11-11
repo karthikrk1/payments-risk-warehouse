@@ -1,5 +1,7 @@
 # Payments Risk Warehouse
 
+[![CI](https://github.com/karthikrk1/payments-risk-warehouse/actions/workflows/ci.yml/badge.svg)](https://github.com/karthikrk1/payments-risk-warehouse/actions/workflows/ci.yml)
+
 A dbt-based risk data platform for a peer-to-peer payments product: it turns raw transaction,
 account, device, login and dispute data into a tested **dimensional warehouse** and a
 **point-in-time-correct ML feature table** for fraud detection, with data quality and lineage
@@ -93,6 +95,22 @@ python ingestion/generate_entities.py
 python ingestion/load_raw.py
 cd risk_warehouse && dbt deps && dbt build
 dbt docs generate && dbt docs serve
+```
+
+## Development workflow
+
+- `main` is protected: changes land only through pull requests, and `main` can't be force-pushed
+  or deleted.
+- Every pull request runs [CI](.github/workflows/ci.yml): **lint** (ruff) and **dbt** (`dbt deps`
+  + `dbt parse`). Both must pass before merging.
+- Dependabot opens weekly pull requests for GitHub Actions and Python packages.
+
+Run the same checks locally:
+
+```bash
+uv pip install -r requirements-dev.txt
+ruff check . && ruff format --check .
+cd risk_warehouse && dbt deps && dbt parse
 ```
 
 ## Roadmap

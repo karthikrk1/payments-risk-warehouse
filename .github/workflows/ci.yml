@@ -1,0 +1,70 @@
+name: CI
+
+# Runs on every pull request into main. The `lint` and `dbt` jobs are required checks in the
+# "Protect main" ruleset, so a pull request can only merge when both pass.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # setup-uv publishes only full version tags (no moving `v10`), so pin the commit.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "requirements*.txt"
+
+      - name: Install tools
+        run: |
+          uv venv --python 3.12
+          uv pip install -r requirements-dev.txt
+
+      - name: Ruff lint
+        run: .venv/bin/ruff check --output-format=github .
+
+      - name: Ruff format check
+        run: .venv/bin/ruff format --check .
+
+  dbt:
+    name: dbt
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: risk_warehouse
+    steps:
+      - uses: actions/checkout@v7
+
+      # setup-uv publishes only full version tags (no moving `v10`), so pin the commit.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "requirements*.txt"
+
+      - name: Install dbt
+        working-directory: .
+        run: |
+          uv venv --python 3.12
+          uv pip install -r requirements.txt
+
+      - name: dbt deps
+        run: ../.venv/bin/dbt deps
+
+      # Validates the project: config, Jinja, refs and YAML. No data needed.
+      # Once ingestion lands, this becomes `dbt build` against a small committed sample.
+      - name: dbt parse
+        run: ../.venv/bin/dbt parse

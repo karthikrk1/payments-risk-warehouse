@@ -113,6 +113,10 @@ dbt docs generate && dbt docs serve           # lineage graph and data dictionar
   run `dbt build --select <model>+` and fix failures before moving on.
 - Do not invent results or metrics. The README results section is filled in only from real query output.
 - Never commit data files, `.duckdb` files, `.env` or credentials.
+- `main` is protected: no direct pushes, no force pushes, no deletion. Work on a branch and open a
+  pull request; it merges only when the CI checks `lint` (ruff) and `dbt` pass. Run
+  `ruff check . && ruff format --check .` and `dbt parse` (or `dbt build`) locally before pushing.
+- New Python dependencies go in `requirements.txt` (runtime) or `requirements-dev.txt` (tools), pinned.
 - Keep the README and `docs/architecture.md` in sync when the architecture changes.
 - Prefer DuckDB-compatible ANSI SQL that would port to Snowflake with minimal changes; note any
   dialect-specific function in a comment.

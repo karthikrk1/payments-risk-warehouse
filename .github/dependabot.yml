@@ -1,0 +1,19 @@
+# Weekly pull requests for outdated GitHub Actions and Python packages.
+# They go through the same CI checks as any other pull request.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    # dbt Core and its adapter move together; update them by hand.
+    ignore:
+      - dependency-name: "dbt-*"
+    groups:
+      python-minor-and-patch:
+        update-types: [minor, patch]
