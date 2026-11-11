@@ -19,6 +19,22 @@ vars:
   # paysim_start_date + (step - 1) hours. The anchor date is arbitrary but fixed so that output
   # is reproducible.
   paysim_start_date: '2024-01-01'
+  # dim_date covers the earliest account signup (2021-01-01, up to 3 years before activity) to
+  # past the last dispute (filed up to 14 days after the window). End is exclusive. Relationship
+  # tests from every fact date to dim_date fail if data falls outside this range.
+  dim_date_start: '2021-01-01'
+  dim_date_end: '2024-03-01'
+
+seeds:
+  risk_warehouse:
+    +schema: seeds
+    transaction_types:
+      +column_types:
+        transaction_type: varchar
+        transaction_type_label: varchar
+        sender_direction: varchar
+        receiver_kind: varchar
+        description: varchar
 
 models:
   risk_warehouse:

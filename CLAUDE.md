@@ -94,11 +94,19 @@ the label, except disputes (which follow fraud, as in reality).
 - **Layers:** `stg_` → `int_` → `dim_` / `fct_` / `ml_`. Marts never select from raw sources;
   staging never joins.
 - **Star schema (marts/core):**
-  - `fct_transactions` — grain: one row per transaction. Incremental, keyed on `transaction_id`.
-  - `fct_logins` — grain: one row per login attempt.
-  - `fct_disputes` — grain: one row per dispute.
-  - `dim_account`, `dim_device`, `dim_date`, `dim_transaction_type`.
+  - `fct_transactions` — grain: one row per transaction. Incremental (`delete+insert`, unique key
+    `transaction_id`), loading only `transaction_id > max(transaction_id)`. That is valid only because
+    the PaySim file is in time order; if a source ever isn't, change the filter (e.g. to a loaded_at
+    watermark) rather than keeping it.
+  - `fct_logins` — grain: one row per login attempt (adds `is_foreign_ip`).
+  - `fct_disputes` — grain: one row per dispute (adds `hours_to_file`).
+  - `dim_account` (customers **and merchants**, so every receiver key resolves), `dim_device`,
+    `dim_date` (range from vars `dim_date_start` / `dim_date_end`), `dim_transaction_type` (from the
+    `transaction_types` seed).
+  - Each fact has a `dbt_utils.equal_rowcount` test against its staging model, and every FK and date
+    column has a `relationships` test to its dimension.
 - **Surrogate keys:** generate with `dbt_utils.generate_surrogate_key`; keep natural keys alongside.
+  Facts compute the same hash instead of joining to the dimension; the relationship tests prove it.
 - **Naming:** snake_case; booleans prefixed `is_` / `has_`; timestamps suffixed `_ts`, dates `_date`;
   amounts suffixed `_amount`.
 - **Every model** has a YAML entry with a description, a stated grain, and column descriptions.

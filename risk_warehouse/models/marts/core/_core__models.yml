@@ -1,0 +1,336 @@
+models:
+  # --- Dimensions ---------------------------------------------------------------------------
+
+  - name: dim_account
+    description: >
+      **Grain: one row per account.** Every customer account, plus every merchant that received a
+      payment, so every transaction's sender and receiver key resolves. Merchants have no signup,
+      KYC or country data.
+    columns:
+      - name: account_key
+        description: Surrogate key, generate_surrogate_key(account_id).
+        data_tests:
+          - unique
+          - not_null
+      - name: account_id
+        description: PaySim account ID. C = customer, M = merchant.
+        data_tests:
+          - unique
+          - not_null
+      - name: account_type
+        description: "`customer` or `merchant`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["customer", "merchant"]
+      - name: is_customer
+        description: True for customer accounts.
+        data_tests:
+          - not_null
+      - name: signup_ts
+        description: When the account was opened. Null for merchants.
+        data_tests:
+          - not_null:
+              config:
+                where: "is_customer"
+      - name: signup_date
+        description: Date part of signup_ts.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+              config:
+                where: "is_customer"
+      - name: kyc_status
+        description: Identity-verification status. Null for merchants.
+        data_tests:
+          - not_null:
+              config:
+                where: "is_customer"
+      - name: country_code
+        description: Home country (ISO 3166-1 alpha-2). Null for merchants.
+        data_tests:
+          - not_null:
+              config:
+                where: "is_customer"
+
+  - name: dim_device
+    description: "**Grain: one row per device** seen in at least one login."
+    columns:
+      - name: device_key
+        description: Surrogate key, generate_surrogate_key(device_id).
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        description: Opaque device ID.
+        data_tests:
+          - unique
+          - not_null
+      - name: device_os
+        description: "`ios`, `android` or `web`."
+        data_tests:
+          - not_null
+      - name: first_seen_ts
+        description: Earliest login from the device.
+      - name: first_seen_date
+        description: Date part of first_seen_ts.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+
+  - name: dim_transaction_type
+    description: "**Grain: one row per transaction type** (five), from the transaction_types seed."
+    columns:
+      - name: transaction_type_key
+        description: Surrogate key, generate_surrogate_key(transaction_type).
+        data_tests:
+          - unique
+          - not_null
+      - name: transaction_type
+        description: Lower-cased PaySim type.
+        data_tests:
+          - unique
+          - not_null
+      - name: transaction_type_label
+        description: Display label.
+      - name: sender_direction
+        description: "`out` if money leaves the sender, `in` for cash_in."
+      - name: receiver_kind
+        description: "`merchant` for payments, `customer` for every other type."
+      - name: description
+        description: What the type means in PaySim.
+
+  - name: dim_date
+    description: >
+      **Grain: one row per calendar day** from `dim_date_start` to `dim_date_end` (vars in
+      dbt_project.yml), covering every account signup, login, transaction and dispute.
+    columns:
+      - name: date_day
+        description: Primary key. The calendar date; facts join on their *_date columns.
+        data_tests:
+          - unique
+          - not_null
+      - name: year_number
+        description: Calendar year.
+      - name: quarter_number
+        description: Calendar quarter, 1-4.
+      - name: month_number
+        description: Calendar month, 1-12.
+      - name: day_of_month_number
+        description: Day of the month, 1-31.
+      - name: iso_day_of_week_number
+        description: ISO day of week, 1 = Monday ... 7 = Sunday.
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 7
+      - name: is_weekend
+        description: Saturday or Sunday.
+      - name: week_start_date
+        description: Monday of the date's week.
+      - name: month_start_date
+        description: First day of the date's month.
+
+  # --- Facts --------------------------------------------------------------------------------
+
+  - name: fct_transactions
+    description: >
+      **Grain: one row per transaction.** Incremental on `transaction_id` (delete+insert): later
+      runs load only transactions newer than the latest already loaded, which is safe because
+      PaySim's file is in time order. Carries the label (`is_fraud`), PaySim's legacy rule flag
+      for comparison, and the balance columns and mismatch flags for analysis. **No balance
+      column may be used as an ML feature** (see stg_paysim__transactions).
+    data_tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('stg_paysim__transactions')
+    columns:
+      - name: transaction_id
+        description: Primary key. The transaction's data row in the PaySim file.
+        data_tests:
+          - unique
+          - not_null
+      - name: transaction_type_key
+        description: Foreign key to dim_transaction_type.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_transaction_type')
+                field: transaction_type_key
+      - name: sender_account_key
+        description: Foreign key to dim_account (always a customer).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_account')
+                field: account_key
+      - name: receiver_account_key
+        description: Foreign key to dim_account (a merchant for payments, otherwise a customer).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_account')
+                field: account_key
+      - name: transaction_date
+        description: Foreign key to dim_date.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: transaction_ts
+        description: When the transaction happened (hour precision).
+      - name: paysim_step
+        description: PaySim's hour index.
+      - name: transaction_type
+        description: Natural key of the type, kept alongside the surrogate key.
+      - name: sender_account_id
+        description: Natural key of the sender.
+      - name: receiver_account_id
+        description: Natural key of the receiver.
+      - name: transaction_amount
+        description: Amount moved, decimal(18, 2).
+        data_tests:
+          - not_null
+      - name: sender_balance_before_amount
+        description: Analysis only; not an ML feature.
+      - name: sender_balance_after_amount
+        description: Post-transaction. Analysis only; not an ML feature.
+      - name: receiver_balance_before_amount
+        description: Null for merchants. Analysis only; not an ML feature.
+      - name: receiver_balance_after_amount
+        description: Null for merchants. Post-transaction. Analysis only; not an ML feature.
+      - name: has_sender_balance_mismatch
+        description: Post-transaction. Analysis only; not an ML feature.
+      - name: has_receiver_balance_mismatch
+        description: Null for merchants. Post-transaction. Analysis only; not an ML feature.
+      - name: has_balance_mismatch
+        description: Post-transaction. Analysis only; not an ML feature.
+      - name: is_fraud
+        description: The label.
+        data_tests:
+          - not_null
+      - name: is_flagged_fraud
+        description: PaySim's legacy rule flag (transfers over 200,000), the baseline to beat.
+        data_tests:
+          - not_null
+
+  - name: fct_logins
+    description: >
+      **Grain: one row per login attempt.** Failed logins and shared devices carry a planted,
+      synthetic fraud signal (see the README).
+    data_tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('stg_app__logins')
+    columns:
+      - name: login_id
+        description: Primary key.
+        data_tests:
+          - unique
+          - not_null
+      - name: account_key
+        description: Foreign key to dim_account.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_account')
+                field: account_key
+      - name: device_key
+        description: Foreign key to dim_device.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_device')
+                field: device_key
+      - name: login_date
+        description: Foreign key to dim_date.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: login_ts
+        description: When the attempt happened.
+      - name: account_id
+        description: Natural key of the account.
+      - name: device_id
+        description: Natural key of the device.
+      - name: is_success
+        description: Whether the attempt succeeded.
+        data_tests:
+          - not_null
+      - name: ip_country_code
+        description: Country of the login IP.
+      - name: is_foreign_ip
+        description: The login IP's country differs from the account's home country.
+        data_tests:
+          - not_null
+
+  - name: fct_disputes
+    description: >
+      **Grain: one row per dispute.** Disputes are filed after the fact, so a feature may only
+      count disputes filed before the transaction being scored.
+    data_tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('stg_app__disputes')
+    columns:
+      - name: dispute_id
+        description: Primary key.
+        data_tests:
+          - unique
+          - not_null
+      - name: transaction_id
+        description: Foreign key to fct_transactions; one dispute per transaction at most.
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_transactions')
+                field: transaction_id
+      - name: account_key
+        description: Foreign key to dim_account (the account that filed, i.e. the sender).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_account')
+                field: account_key
+      - name: filed_date
+        description: Foreign key to dim_date.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: filed_ts
+        description: When the dispute was filed.
+      - name: account_id
+        description: Natural key of the filing account.
+      - name: dispute_reason
+        description: "`unauthorized`, `not_received` or `other`."
+      - name: dispute_status
+        description: "`open`, `won` or `lost`."
+      - name: hours_to_file
+        description: Whole hours between the transaction and the dispute. At least 1.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1

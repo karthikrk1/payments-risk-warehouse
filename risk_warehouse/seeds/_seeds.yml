@@ -1,0 +1,24 @@
+seeds:
+  - name: transaction_types
+    description: >
+      Static reference data for PaySim's five transaction types: label, which way money moves for
+      the sender, and what kind of account receives it (checked against the data:
+      payments go to merchants, every other type to customers).
+    columns:
+      - name: transaction_type
+        description: Primary key, matching stg_paysim__transactions.transaction_type.
+        data_tests:
+          - unique
+          - not_null
+      - name: sender_direction
+        description: "`out` if money leaves the sender's account, `in` if it arrives (cash_in only)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["in", "out"]
+      - name: receiver_kind
+        description: "`merchant` or `customer`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["customer", "merchant"]
