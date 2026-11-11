@@ -7,9 +7,11 @@ account, device, login and dispute data into a tested **dimensional warehouse** 
 **point-in-time-correct ML feature table** for fraud detection, with data quality and lineage
 monitoring built in.
 
-> **Status:** 🚧 In progress. Phase 1 (warehouse, features, tests, docs) is under active development.
+> **Status:** Phase 1 complete: warehouse, point-in-time features, 154 tests, CI and hosted docs.
+> Phase 2 (orchestration, observability, Snowflake) is planned; see the [Roadmap](#roadmap).
 
-**Live docs and lineage graph:** _link to GitHub Pages once published_
+**Live docs and lineage graph:** <https://karthikrk1.github.io/payments-risk-warehouse/> (built from
+the CI sample, so row counts there are the sample's).
 
 ---
 
@@ -329,6 +331,9 @@ git-ignored. About 1 GB of disk in total.
   whole pipeline (generate entities, load raw, `dbt build` with every test) on a committed
   4,904-row PaySim sample in [`data/sample/`](data/sample/README.md). Both must pass before merging.
 - Dependabot opens weekly pull requests for GitHub Actions and the direct Python dependencies.
+- Every merge to `main` republishes the [dbt docs site](https://karthikrk1.github.io/payments-risk-warehouse/)
+  ([docs workflow](.github/workflows/docs.yml)): the pipeline runs on the sample, then
+  `dbt docs generate --static` goes to GitHub Pages.
 
 Run the same checks locally:
 
@@ -342,11 +347,11 @@ it (12% vs 0.13%) so tests have cases to work on; results always come from the f
 
 ## Roadmap
 
-- [ ] Phase 1: staging, star schema, risk features, ML feature table, tests, hosted dbt docs
+- [x] Phase 1: staging, star schema, risk features, ML feature table, tests, hosted dbt docs
+- [x] GitHub Actions CI running the full pipeline and `dbt build` on every pull request
 - [ ] Orchestration with Prefect (dependency checks, SLA alerts)
 - [ ] Data observability with Elementary
 - [ ] Snowflake target provisioned with Terraform
-- [ ] GitHub Actions CI running `dbt build` on every pull request
 - [ ] AI triage agent: classifies failed dbt tests and suggests fixes using the Claude API
 
 ## Tools
