@@ -1,0 +1,8 @@
+# Ruff: Python linting and formatting (ingestion/ and any other Python in the repo).
+target-version = "py312"
+line-length = 100
+extend-exclude = ["risk_warehouse/dbt_packages", "risk_warehouse/target"]
+
+[lint]
+# Pyflakes, pycodestyle, isort, pyupgrade, bugbear, simplify.
+select = ["F", "E", "W", "I", "UP", "B", "SIM"]
