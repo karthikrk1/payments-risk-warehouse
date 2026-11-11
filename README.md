@@ -224,8 +224,79 @@ difference reads as 0.0100000000093, over a 0.01 tolerance, so a float-based che
 
 ## Results
 
-_Fill in from real query output, e.g. fraud rate by transaction type, how the legacy
-`isFlaggedFraud` rule compares with simple velocity features, test coverage._
+All numbers below are from the full dataset (6,362,620 transactions, 8,213 fraudulent, a 0.129% base
+rate). Regenerate them with `make results`, which runs the SQL in
+[`risk_warehouse/analyses/`](risk_warehouse/analyses/). Each rule is a simple yes/no condition scored
+against the label: **precision** (share of flagged transactions that are fraud), **recall** (share of
+all fraud caught) and **lift** (precision divided by the base rate). These are rules, not a trained
+model: the aim is to show the warehouse produces trustworthy features and where the signal is.
+
+### 1. Fraud is concentrated in two transaction types
+
+| Type | Transactions | Fraud | Fraud rate |
+|---|---:|---:|---:|
+| transfer | 532,909 | 4,097 | 0.769% |
+| cash_out | 2,237,500 | 4,116 | 0.184% |
+| payment, cash_in, debit | 3,592,211 | 0 | 0% |
+
+### 2. The legacy rule catches almost nothing, and its documentation is wrong
+
+| Rule | Flagged | Fraud caught | Precision | Recall |
+|---|---:|---:|---:|---:|
+| Legacy flag (`isFlaggedFraud`) | 16 | 16 | 100% | **0.19%** |
+| Documented rule: transfer over 200,000 | 409,110 | 2,740 | 0.67% | 33.4% |
+
+The legacy flag is never wrong but misses 99.8% of fraud. Kaggle documents it as "transfers over
+200.000", but that rule would flag 409,110 transfers, not 16. The flagged amounts run from 353,874 to
+10,000,000, and in every flagged row the sender's balance is unchanged: the flag looks like it marks
+blocked transfers, by a rule the documentation doesn't describe. Lesson: verify documentation against
+the data before building on it.
+
+### 3. The leakage trap: a "perfect" rule that must not be used
+
+| Rule (uses post-transaction balances) | Flagged | Fraud caught | Precision | Recall |
+|---|---:|---:|---:|---:|
+| Sender's account emptied exactly (after = 0, before = amount) | 8,024 | 8,024 | **100%** | **97.7%** |
+| Sender's balance adds up, transfer or cash-out | 281,757 | 8,168 | 2.9% | 99.45% |
+
+One balance rule finds 97.7% of fraud with zero false positives. It's leakage: it reads the balance
+*after* the transaction, which a real-time check wouldn't have, and the dataset's author says fraudulent
+transactions were cancelled in the simulation, so balances are distorted exactly where it matters. A
+model trained on them would learn the simulator, not fraud. This is why `ml_transaction_features`
+contains no balance column, enforced by a test (design decision 2).
+
+### 4. Point-in-time features: where the signal is
+
+| Rule | Signal | Flagged | Fraud caught | Precision | Recall | Lift |
+|---|---|---:|---:|---:|---:|---:|
+| Type is transfer or cash-out | real | 2,770,409 | 8,213 | 0.30% | 100% | 2.3x |
+| Transfer/cash-out to a receiver with no activity in the prior 7 days | real | 489,543 | 5,864 | 1.20% | 71.4% | 9.3x |
+| Transfer to a receiver with no activity in the prior 7 days | real | 84,818 | 4,093 | 4.83% | 49.8% | 37.4x |
+| Failed login in the prior 24 hours | planted | 257,279 | 2,478 | 0.96% | 30.2% | 7.5x |
+| Device previously used by another account | planted | 30,212 | 2,244 | 7.43% | 27.3% | 57.5x |
+| Transfer/cash-out, receiver with no 7-day activity, and a failed login or shared device | real + planted | 24,533 | 2,917 | 11.89% | 35.5% | 92.1x |
+
+- **The real signal is on the receiving side.** Fraud goes to accounts with no recent activity. Transfers
+  to a receiver with no activity in the prior 7 days catch **4,093 of the 4,097 fraudulent transfers
+  (99.9%)** at 37x the base rate; for cash-outs the same rule catches 1,771 of 4,116 (43%). Sender-side
+  history is useless in PaySim, because 99.85% of senders appear only once.
+- **The planted signals come back as configured:** 30.2% of fraud had a failed login and 27.3% a
+  previously shared device (each was planted at 30%; the shared-device share is lower because a ring
+  device's first use has no earlier accounts, which is the point-in-time logic working). This shows the
+  login and device pipeline works end to end. The signals are synthetic and say nothing about real fraud.
+- **Features with no planted signal show none:** on transfers and cash-outs, sender account age (median
+  482 days for fraud vs 488 for legitimate) and foreign-IP logins (2.8% vs 2.9%) don't separate the two.
+  That is evidence the generator doesn't leak the label by accident.
+- **Combining a real and a planted signal** gives 11.9% precision (92x the base rate) at 35.5% recall,
+  against the legacy rule's 0.19% recall.
+
+### 5. Data quality
+
+- 17 models, 154 tests; a full build on 6.36M transactions takes about 8 seconds, and CI runs the whole
+  pipeline on a committed sample on every pull request.
+- The three leakage and correctness tests were proven by breaking the model on purpose (design decision 1).
+- Doing the balance arithmetic in floating point instead of `decimal(18, 2)` would misclassify about 680k
+  transactions as balance mismatches.
 
 ## Quickstart
 
@@ -239,6 +310,7 @@ make data      # PaySim from Kaggle -> data/raw/paysim.csv (needs a Kaggle API t
 make ingest    # generate entities (~10 s), load everything into DuckDB's raw schema (~10 s)
 make build     # dbt deps + dbt build
 make docs      # dbt docs: lineage graph and data dictionary
+make results   # run the analyses and print the README Results tables
 ```
 
 **Kaggle token:** on kaggle.com, Settings → API → Create New Token, then move the downloaded

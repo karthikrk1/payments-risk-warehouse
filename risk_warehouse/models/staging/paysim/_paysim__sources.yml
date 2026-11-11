@@ -34,6 +34,9 @@ sources:
           - name: isFraud
             description: 1 if the simulation marked the transaction as fraud.
           - name: isFlaggedFraud
-            description: 1 if PaySim's legacy rule flagged it (a transfer over 200,000).
+            description: >
+              1 if PaySim's legacy rule flagged it. Kaggle describes the rule as "transfers over
+              200.000", but the data doesn't match: only 16 of 409,110 such transfers are flagged
+              (amounts 353,874 to 10,000,000), and in every flagged row the sender's balance is unchanged.
           - name: _loaded_at
             description: When load_raw.py loaded the row.

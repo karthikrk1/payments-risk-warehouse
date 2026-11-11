@@ -72,7 +72,11 @@ Known characteristics to handle explicitly and document:
   Use balances for analysis and data-quality reporting only.
 - Do money arithmetic in `decimal(18, 2)`, never floating point: PaySim balances are often off by
   exactly one cent, which floating point turns into 0.0100000000093 and misreads as a mismatch.
-- `isFlaggedFraud` is the legacy rule-based flag; treat it as a baseline to compare against.
+- `isFlaggedFraud` is the legacy rule-based flag; treat it as a baseline to compare against. Kaggle
+  documents it as "transfers over 200.000", but **that doesn't match the data**: 16 rows are flagged,
+  out of 409,110 transfers over 200,000; flagged amounts are 353,874 to 10,000,000, and every flagged
+  row has an unchanged sender balance. Describe it as "PaySim's legacy flag", never as the 200,000 rule.
+- Fraud amounts are capped at exactly 10,000,000 (287 rows); large fraud is split into chunks.
 - Facts measured on load: 743 steps; 8,213 fraud rows (0.13%); `isFlaggedFraud` fires 16 times;
   99.85% of senders (`nameOrig`) appear once, so build velocity for receivers too; 16 rows have amount 0.
 - The file lives at `data/raw/paysim.csv`. PaySim has no transaction ID: `source_row_number` (added by
@@ -150,6 +154,7 @@ make setup     # .venv (Python 3.12) + requirements-dev.txt
 make ingest    # generate_entities.py, then load_raw.py
 make build     # dbt deps + dbt build (run and test everything)
 make docs      # dbt docs generate + serve
+make results   # analyses -> Markdown tables; README Results is pasted from this, never typed by hand
 make lint      # ruff, same as CI
 make ci-build  # whole pipeline on data/sample/paysim_sample.csv -> warehouse/ci.duckdb, same as CI
 make sample    # rebuild the committed sample from the full CSV (deterministic)
