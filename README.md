@@ -32,12 +32,14 @@ builds that foundation end to end on public, synthetic data.
                                                     dbt tests + docs (lineage, data dictionary)
 ```
 
-_Replace with a proper diagram in `docs/architecture.md` (e.g. Mermaid or Excalidraw)._
+Diagrams of the data flow, the point-in-time feature checks and the build/test/publish pipeline are in
+[`docs/architecture.md`](docs/architecture.md). The Phase 2 plan is in
+[`docs/phase-2-plan.md`](docs/phase-2-plan.md).
 
 | Layer | Purpose | Examples |
 |---|---|---|
 | Staging | 1:1 with sources: rename, cast, clean | `stg_paysim__transactions`, `stg_app__logins` |
-| Intermediate | Joins and risk features | `int_account_velocity`, `int_device_sharing` |
+| Intermediate | Joins and risk features | `int_account_velocity`, `int_transaction_login_features` |
 | Marts / core | Star schema for analytics | `fct_transactions`, `dim_account`, `dim_device` |
 | Marts / ml | ML-ready, leakage-safe features | `ml_transaction_features` |
 
