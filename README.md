@@ -359,7 +359,9 @@ make flow      # or: the whole pipeline as a Prefect flow
 `data/raw/paysim.csv`.
 
 Generated files go to `data/raw/generated/` and the warehouse to `warehouse/risk.duckdb`; both are
-git-ignored. About 1 GB of disk in total.
+git-ignored. Disk use: about 0.9 GB of inputs (the PaySim CSV and generated files) plus about 3.4 GB
+for the built warehouse. `make replay` builds a second copy (`warehouse/replay.duckdb`, about
+3.5 GB); delete it afterwards if you don't need it. `make clean` removes everything generated.
 
 ## Development workflow
 
