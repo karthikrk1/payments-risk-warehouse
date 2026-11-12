@@ -17,8 +17,9 @@ to explain every model and every line in an interview, so prefer simple, readabl
 - Python 3.12, managed with **uv** (`uv venv`, `uv pip install`). Do not use the system or Homebrew
   Python, and do not call `pip` directly; use `uv pip`.
 - **dbt Core 1.12** with the **dbt-duckdb** adapter. Local warehouse file: `warehouse/risk.duckdb`.
-- Planned (phase 2): Prefect for orchestration, Elementary for data observability, Snowflake as an
-  alternative target with Terraform, GitHub Actions CI, and a Claude-API triage agent for test failures.
+- GitHub Actions: CI (`lint`, `dbt`) on every PR; docs published to GitHub Pages on merge.
+- Phase 2 (planned, in order): Prefect orchestration, Elementary observability, a Claude-API triage
+  agent for test failures, optionally Snowflake + Terraform. Plan and status: `docs/phase-2-plan.md`.
 
 ## Repository layout
 
@@ -26,27 +27,38 @@ to explain every model and every line in an interview, so prefer simple, readabl
 payments-risk-warehouse/
 ├── CLAUDE.md
 ├── README.md
-├── requirements.txt
-├── Makefile                  # make setup / make seed / make build / make docs / make demo
+├── Makefile                  # `make help` lists targets: setup, data, ingest, build, results, ci-build, docs, lint, ...
+├── requirements.txt          # runtime, pinned
+├── requirements-dev.txt      # + ruff
+├── ruff.toml
+├── .github/
+│   ├── workflows/ci.yml      # lint + dbt (full pipeline on the sample) on every PR
+│   ├── workflows/docs.yml    # dbt docs → GitHub Pages on merge to main
+│   └── dependabot.yml        # Actions + direct Python deps only
 ├── data/
-│   └── raw/                  # PaySim CSV + generated files (git-ignored)
+│   ├── raw/                  # PaySim CSV + generated files (git-ignored)
+│   └── sample/               # committed 4,904-row CI sample + attribution (CC BY-SA 4.0)
 ├── ingestion/
-│   ├── generate_entities.py  # synthetic accounts, devices, logins, disputes (seeded, reproducible)
-│   └── load_raw.py           # loads raw files into DuckDB schema `raw`
-├── risk_warehouse/           # dbt project
-│   ├── dbt_project.yml
+│   ├── common.py             # paths, PaySim reader (source_row_number), rnd() macro
+│   ├── generate_entities.py  # synthetic accounts, devices, logins, disputes (MD5-seeded, reproducible)
+│   ├── load_raw.py           # loads raw files into DuckDB schema `raw`
+│   └── make_sample.py        # builds the CI sample
+├── scripts/
+│   └── run_analyses.py       # `make results`: analyses → Markdown tables
+├── risk_warehouse/           # dbt project (profiles.yml in here; targets dev and ci)
 │   ├── models/
 │   │   ├── staging/          # stg_*  : 1:1 with raw sources, rename/cast/clean only
 │   │   ├── intermediate/     # int_*  : joins, window features, business logic
 │   │   └── marts/
 │   │       ├── core/         # dim_* and fct_* (star schema)
 │   │       └── ml/           # ML-ready feature tables
-│   ├── tests/                # singular data tests
+│   ├── analyses/             # results queries (precision/recall via macros/rule_metrics.sql)
+│   ├── tests/                # singular data tests, incl. the leakage tests
 │   ├── macros/
 │   └── seeds/                # small static reference data only
-├── triage_agent/             # phase 2
 └── docs/
-    └── architecture.md       # diagrams and design decisions
+    ├── architecture.md       # diagrams: data flow, point-in-time checks, build/test/publish
+    └── phase-2-plan.md       # Phase 2 plan and status
 ```
 
 ## Source data
