@@ -9,3 +9,6 @@ dbt_packages/
 __pycache__/
 data/raw
 .user.yml
+
+# Built pages (monitoring chart page); published by the docs workflow
+site/

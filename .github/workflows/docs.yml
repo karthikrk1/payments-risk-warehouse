@@ -1,7 +1,9 @@
 name: Docs
 
-# Publishes the dbt docs site (lineage graph, model and column docs, SQL) to GitHub Pages on
-# every merge to main: https://karthikrk1.github.io/payments-risk-warehouse/
+# Publishes the dbt docs site (lineage graph, model and column docs, SQL) and the monitoring
+# chart page to GitHub Pages on every merge to main:
+#   https://karthikrk1.github.io/payments-risk-warehouse/            dbt docs
+#   https://karthikrk1.github.io/payments-risk-warehouse/monitoring/ monitoring charts
 # Built from the committed sample (data/sample/), so the catalog's row counts and statistics are
 # the sample's, not the full dataset's. Everything else (models, docs, tests, lineage) is the same.
 on:
@@ -48,6 +50,11 @@ jobs:
         run: |
           mkdir -p site
           cp risk_warehouse/target/static_index.html site/index.html
+
+      # The monitoring chart page, built from the committed full-data export
+      # (docs/monitoring/monitoring.json), not from the sample, whose rates are skewed on purpose.
+      - name: Build the monitoring page
+        run: .venv/bin/python scripts/build_monitoring_page.py --out site/monitoring/index.html
 
       - uses: actions/upload-pages-artifact@v5
         with:

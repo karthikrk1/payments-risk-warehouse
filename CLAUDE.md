@@ -178,6 +178,8 @@ make sample    # rebuild the committed sample from the full CSV (deterministic)
 make flow      # full pipeline as a Prefect flow (flows/pipeline.py)
 make replay    # replay the full data day by day into warehouse/replay.duckdb; must equal make build
 make ci-replay # replay the sample week by week; must equal make ci-build, same as CI
+make monitoring-export  # full-data monitoring -> docs/monitoring/monitoring.json (commit it)
+make monitoring-page    # build the chart page locally -> site/monitoring/index.html
 ```
 
 ## Orchestration and replay
@@ -216,6 +218,12 @@ make ci-replay # replay the sample week by week; must equal make ci-build, same 
   `DECIMAL(38,2)`, which aren't portable.
 - Elementary was evaluated and not adopted (its window ends at "now"; see `docs/phase-2-plan.md`).
   Don't add it back without solving that.
+- **Chart page** (`docs/monitoring/template.html` + `scripts/build_monitoring_page.py`, published at
+  `/monitoring/`) is built from `docs/monitoring/monitoring.json`, a committed export of the **full** data.
+  After any change to monitoring logic, metrics or known events, run `make build && make monitoring-export`
+  and commit the JSON in the same PR; CI can't regenerate it (it only has the sample). The export
+  refuses to write if a band disagrees with a day's status. Render the page and look at it before
+  shipping a template change.
 
 ## Working rules for Claude
 

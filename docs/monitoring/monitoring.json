@@ -1,0 +1,5868 @@
+{
+ "exported_at": "2026-11-12",
+ "dataset": {
+  "name": "PaySim, full dataset",
+  "transactions": 6362620
+ },
+ "rule": {
+  "baseline_days": 7,
+  "min_baseline_days": 5,
+  "threshold": 3.5,
+  "min_relative_change": 0.2
+ },
+ "counts": {
+  "measured": 658,
+  "scored": 553,
+  "ok": 501,
+  "expected": 38,
+  "anomaly": 14,
+  "insufficient_baseline": 105
+ },
+ "known_events": {
+  "E4-final-day": "Last day: only fraud transactions, mostly to receivers with no recent activity.",
+  "E1-volume-lull": "Legitimate volume drops to 1-28k a day on Jan 3-5 (from ~450k) and recovers on Jan 6; the recovery stands out against a baseline that includes the lull.",
+  "E2-dispute-ramp": "Disputes are filed 1 hour to 14 days after their transaction and nothing exists before Jan 1, so daily disputes ramp up (20 to 338 a day) over the first 14 days.",
+  "E3-volume-collapse": "From Jan 18 legitimate volume falls ~20x (to 10-55k a day) while fraud stays near-constant (~262 a day), so volumes, mix and fraud share all shift; the 7-day baseline needs until Jan 25 to adjust."
+ },
+ "always_zero": [
+  "transactions.fraud_share[cash_in]",
+  "transactions.fraud_share[debit]",
+  "transactions.fraud_share[payment]"
+ ],
+ "monitors": [
+  {
+   "source": "disputes",
+   "metric": "row_count",
+   "dimension": "all",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 20.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 76.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 98.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 100.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 91.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 157.0,
+     "status": "expected",
+     "median": 91.0,
+     "low": 44.29873980726464,
+     "high": 137.70126019273536,
+     "z": 4.946333333333333,
+     "baseline_days": 5,
+     "event": "E2-dispute-ramp"
+    },
+    {
+     "date": "2024-01-07",
+     "value": 185.0,
+     "status": "expected",
+     "median": 94.5,
+     "low": 32.231653076352856,
+     "high": 156.76834692364713,
+     "z": 5.086854166666666,
+     "baseline_days": 6,
+     "event": "E2-dispute-ramp"
+    },
+    {
+     "date": "2024-01-08",
+     "value": 213.0,
+     "status": "expected",
+     "median": 98.0,
+     "low": -16.158636026686438,
+     "high": 212.15863602668645,
+     "z": 3.525795454545454,
+     "baseline_days": 7,
+     "event": "E2-dispute-ramp"
+    },
+    {
+     "date": "2024-01-09",
+     "value": 253.0,
+     "status": "expected",
+     "median": 100.0,
+     "low": -24.536693847294288,
+     "high": 224.5366938472943,
+     "z": 4.2999374999999995,
+     "baseline_days": 7,
+     "event": "E2-dispute-ramp"
+    },
+    {
+     "date": "2024-01-10",
+     "value": 284.0,
+     "status": "ok",
+     "median": 157.0,
+     "low": -138.77464788732397,
+     "high": 452.77464788732397,
+     "z": 1.5028333333333335,
+     "baseline_days": 7,
+     "event": "E2-dispute-ramp"
+    },
+    {
+     "date": "2024-01-11",
+     "value": 307.0,
+     "status": "ok",
+     "median": 185.0,
+     "low": -167.85396590066716,
+     "high": 537.8539659006672,
+     "z": 1.2101323529411765,
+     "baseline_days": 7,
+     "event": "E2-dispute-ramp"
+    },
+    {
+     "date": "2024-01-12",
+     "value": 338.0,
+     "status": "ok",
+     "median": 213.0,
+     "low": -77.58561897702003,
+     "high": 503.58561897702003,
+     "z": 1.5055803571428572,
+     "baseline_days": 7,
+     "event": "E2-dispute-ramp"
+    },
+    {
+     "date": "2024-01-13",
+     "value": 394.0,
+     "status": "ok",
+     "median": 253.0,
+     "low": -27.20756115641217,
+     "high": 533.2075611564121,
+     "z": 1.7611944444444445,
+     "baseline_days": 7,
+     "event": "E2-dispute-ramp"
+    },
+    {
+     "date": "2024-01-14",
+     "value": 421.0,
+     "status": "ok",
+     "median": 284.0,
+     "low": 3.7924388435878313,
+     "high": 564.2075611564121,
+     "z": 1.7112314814814813,
+     "baseline_days": 7,
+     "event": "E2-dispute-ramp"
+    },
+    {
+     "date": "2024-01-15",
+     "value": 451.0,
+     "status": "ok",
+     "median": 307.0,
+     "low": 26.79243884358783,
+     "high": 587.2075611564121,
+     "z": 1.7986666666666666,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 455.0,
+     "status": "ok",
+     "median": 338.0,
+     "low": 47.41438102297997,
+     "high": 628.58561897702,
+     "z": 1.4092232142857142,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 466.0,
+     "status": "ok",
+     "median": 394.0,
+     "low": 98.22535211267603,
+     "high": 689.7746478873239,
+     "z": 0.852,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 483.0,
+     "status": "ok",
+     "median": 421.0,
+     "low": 244.57301704966642,
+     "high": 597.4269829503336,
+     "z": 1.2299705882352943,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-19",
+     "value": 504.0,
+     "status": "ok",
+     "median": 451.0,
+     "low": 295.32913269088215,
+     "high": 606.6708673091179,
+     "z": 1.1916166666666668,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-20",
+     "value": 450.0,
+     "status": "ok",
+     "median": 455.0,
+     "low": 309.70719051149,
+     "high": 600.29280948851,
+     "z": -0.12044642857142858,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-21",
+     "value": 415.0,
+     "status": "ok",
+     "median": 455.0,
+     "low": 364.0,
+     "high": 546.0,
+     "z": -2.4527272727272726,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-22",
+     "value": 435.0,
+     "status": "ok",
+     "median": 455.0,
+     "low": 364.0,
+     "high": 546.0,
+     "z": -1.2263636363636363,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-23",
+     "value": 368.0,
+     "status": "ok",
+     "median": 455.0,
+     "low": 351.2194217939214,
+     "high": 558.7805782060785,
+     "z": -2.934075,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-24",
+     "value": 365.0,
+     "status": "ok",
+     "median": 450.0,
+     "low": 278.76204595997035,
+     "high": 621.2379540400296,
+     "z": -1.7373484848484848,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-25",
+     "value": 325.0,
+     "status": "ok",
+     "median": 435.0,
+     "low": 185.92661230541142,
+     "high": 684.0733876945885,
+     "z": -1.5457291666666666,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-26",
+     "value": 302.0,
+     "status": "ok",
+     "median": 415.0,
+     "low": 171.11564121571533,
+     "high": 658.8843587842847,
+     "z": -1.6216702127659572,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 256.0,
+     "status": "ok",
+     "median": 368.0,
+     "low": 124.11564121571533,
+     "high": 611.8843587842847,
+     "z": -1.6073191489361702,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 236.0,
+     "status": "ok",
+     "median": 365.0,
+     "low": 105.54855448480356,
+     "high": 624.4514455151964,
+     "z": -1.7402099999999998,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 191.0,
+     "status": "ok",
+     "median": 325.0,
+     "low": 101.87175685693106,
+     "high": 548.128243143069,
+     "z": -2.1019302325581393,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 204.0,
+     "status": "ok",
+     "median": 302.0,
+     "low": -24.9088213491475,
+     "high": 628.9088213491475,
+     "z": -1.0492222222222223,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 136.0,
+     "status": "ok",
+     "median": 256.0,
+     "low": -13.829503335804304,
+     "high": 525.8295033358042,
+     "z": -1.5565384615384614,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-01",
+     "value": 107.0,
+     "status": "ok",
+     "median": 236.0,
+     "low": 2.493699036323193,
+     "high": 469.50630096367684,
+     "z": -1.9335666666666664,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-02",
+     "value": 129.0,
+     "status": "ok",
+     "median": 204.0,
+     "low": -65.8295033358043,
+     "high": 473.8295033358043,
+     "z": -0.9728365384615384,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-03",
+     "value": 128.0,
+     "status": "ok",
+     "median": 191.0,
+     "low": -94.3965900667161,
+     "high": 476.3965900667161,
+     "z": -0.7726090909090909,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-04",
+     "value": 82.0,
+     "status": "ok",
+     "median": 136.0,
+     "low": -14.481838398813949,
+     "high": 286.4818383988139,
+     "z": -1.2559655172413793,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-05",
+     "value": 103.0,
+     "status": "ok",
+     "median": 129.0,
+     "low": 14.841363973313562,
+     "high": 243.15863602668645,
+     "z": -0.7971363636363636,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-06",
+     "value": 74.0,
+     "status": "ok",
+     "median": 128.0,
+     "low": 19.030392883617495,
+     "high": 236.96960711638252,
+     "z": -1.7344285714285714,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-07",
+     "value": 68.0,
+     "status": "ok",
+     "median": 107.0,
+     "low": -7.1586360266864375,
+     "high": 221.15863602668645,
+     "z": -1.1957045454545454,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-08",
+     "value": 58.0,
+     "status": "ok",
+     "median": 103.0,
+     "low": -26.72572275759822,
+     "high": 232.72572275759822,
+     "z": -1.2141,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-09",
+     "value": 46.0,
+     "status": "ok",
+     "median": 82.0,
+     "low": -26.969607116382505,
+     "high": 190.96960711638252,
+     "z": -1.1562857142857144,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-10",
+     "value": 34.0,
+     "status": "ok",
+     "median": 74.0,
+     "low": -9.024462564862858,
+     "high": 157.02446256486286,
+     "z": -1.68625,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-11",
+     "value": 49.0,
+     "status": "ok",
+     "median": 68.0,
+     "low": -4.646404744255008,
+     "high": 140.646404744255,
+     "z": -0.9153928571428571,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-12",
+     "value": 23.0,
+     "status": "ok",
+     "median": 58.0,
+     "low": -4.268346923647144,
+     "high": 120.26834692364714,
+     "z": -1.9672916666666664,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-13",
+     "value": 12.0,
+     "status": "ok",
+     "median": 49.0,
+     "low": -28.83543365455894,
+     "high": 126.83543365455894,
+     "z": -1.6637666666666666,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-02-14",
+     "value": 4.0,
+     "status": "ok",
+     "median": 46.0,
+     "low": -16.268346923647144,
+     "high": 108.26834692364714,
+     "z": -2.36075,
+     "baseline_days": 7,
+     "event": null
+    }
+   ]
+  },
+  {
+   "source": "logins",
+   "metric": "failed_share",
+   "dimension": "all",
+   "days": [
+    {
+     "date": "2023-12-31",
+     "value": 0.11008872822872165,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-01",
+     "value": 0.056456697709564255,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 0.05603104433955993,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 0.46048109965635736,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 0.06253647150359852,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 0.07092651757188498,
+     "status": "ok",
+     "median": 0.06253647150359852,
+     "low": 0.028779621875525782,
+     "high": 0.09629332113167126,
+     "z": 0.8699023031634463,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-06",
+     "value": 0.057092097752446266,
+     "status": "ok",
+     "median": 0.06673149453774174,
+     "low": 0.012310912927469282,
+     "high": 0.12115207614801421,
+     "z": -0.6199472286081886,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 0.05710925687405499,
+     "status": "ok",
+     "median": 0.06253647150359852,
+     "low": 0.028779621875525782,
+     "high": 0.09629332113167126,
+     "z": -0.5627080551855049,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 0.05747372171744165,
+     "status": "ok",
+     "median": 0.05710925687405499,
+     "low": 0.045687405499243994,
+     "high": 0.06853110824886599,
+     "z": 0.22799914580795372,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 0.05734041788685076,
+     "status": "ok",
+     "median": 0.05747372171744165,
+     "low": 0.045978977373953324,
+     "high": 0.06896846606092999,
+     "z": -0.062324006123655226,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 0.057138246472665265,
+     "status": "ok",
+     "median": 0.05747372171744165,
+     "low": 0.045978977373953324,
+     "high": 0.06896846606092999,
+     "z": -0.5929345988646424,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 0.05716930649476738,
+     "status": "ok",
+     "median": 0.05734041788685076,
+     "low": 0.04587233430948061,
+     "high": 0.0688085014642209,
+     "z": -0.4992824376583213,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 0.05691442875176678,
+     "status": "ok",
+     "median": 0.05716930649476738,
+     "low": 0.045735445195813906,
+     "high": 0.06860316779372086,
+     "z": -2.2266265773233584,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 0.0571475727300735,
+     "status": "ok",
+     "median": 0.057138246472665265,
+     "low": 0.04571059717813221,
+     "high": 0.06856589576719832,
+     "z": 0.1363106190595196,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 0.05767340484636096,
+     "status": "ok",
+     "median": 0.0571475727300735,
+     "low": 0.0457180581840588,
+     "high": 0.0685770872760882,
+     "z": 9.256579371854528,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 0.05759980140422204,
+     "status": "ok",
+     "median": 0.05716930649476738,
+     "low": 0.045735445195813906,
+     "high": 0.06860316779372086,
+     "z": 1.6969578290011307,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 0.057748563686996664,
+     "status": "ok",
+     "median": 0.05716930649476738,
+     "low": 0.045735445195813906,
+     "high": 0.06860316779372086,
+     "z": 2.283360396999613,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 0.05755643059175864,
+     "status": "ok",
+     "median": 0.05716930649476738,
+     "low": 0.045735445195813906,
+     "high": 0.06860316779372086,
+     "z": 1.0244723621080658,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 0.06394818463783981,
+     "status": "ok",
+     "median": 0.05755643059175864,
+     "low": 0.046045144473406914,
+     "high": 0.06906771671011037,
+     "z": 22.43881044408721,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 0.07737512242899118,
+     "status": "expected",
+     "median": 0.05759980140422204,
+     "low": 0.04607984112337763,
+     "high": 0.06911976168506645,
+     "z": 89.66287544413656,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 0.06176890156918688,
+     "status": "ok",
+     "median": 0.05767340484636096,
+     "low": 0.04613872387708877,
+     "high": 0.06920808581563315,
+     "z": 23.615560098566856,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 0.058035219847159154,
+     "status": "ok",
+     "median": 0.057748563686996664,
+     "low": 0.04619885094959733,
+     "high": 0.069298276424396,
+     "z": 1.0063314692873186,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 0.05933963615527861,
+     "status": "ok",
+     "median": 0.058035219847159154,
+     "low": 0.04642817587772732,
+     "high": 0.06964226381659099,
+     "z": 1.837611830053673,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 0.05611092598763375,
+     "status": "ok",
+     "median": 0.05933963615527861,
+     "low": 0.04747170892422289,
+     "high": 0.07120756338633433,
+     "z": -1.2212641394958663,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 0.060733460216458826,
+     "status": "ok",
+     "median": 0.05933963615527861,
+     "low": 0.04673410769170716,
+     "high": 0.07194516461885006,
+     "z": 0.38700354596229214,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 0.05762087787862149,
+     "status": "ok",
+     "median": 0.060733460216458826,
+     "low": 0.04673221293321368,
+     "high": 0.07473470749970397,
+     "z": -0.7780762643530504,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 0.06775300171526587,
+     "status": "ok",
+     "median": 0.05933963615527861,
+     "low": 0.04747170892422289,
+     "high": 0.07120756338633433,
+     "z": 3.3016946869623625,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 0.07752667922159448,
+     "status": "anomaly",
+     "median": 0.05933963615527861,
+     "low": 0.04747170892422289,
+     "high": 0.07120756338633433,
+     "z": 7.137222676878637,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 0.06441853135833596,
+     "status": "ok",
+     "median": 0.05933963615527861,
+     "low": 0.04747170892422289,
+     "high": 0.07120756338633433,
+     "z": 1.9931335668241754,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 0.05985429183067468,
+     "status": "ok",
+     "median": 0.060733460216458826,
+     "low": 0.041611519524731674,
+     "high": 0.07985540090818598,
+     "z": -0.16091930206518087,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 0.07252693035112244,
+     "status": "ok",
+     "median": 0.060733460216458826,
+     "low": 0.041611519524731674,
+     "high": 0.07985540090818598,
+     "z": 2.1586274184597087,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 0.4357894736842105,
+     "status": "expected",
+     "median": 0.06441853135833596,
+     "low": 0.040734560495749625,
+     "high": 0.0881025022209223,
+     "z": 54.8809279356891,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "logins",
+   "metric": "row_count",
+   "dimension": "all",
+   "days": [
+    {
+     "date": "2023-12-31",
+     "value": 3043.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-01",
+     "value": 607439.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 481376.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 582.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 30846.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 10955.0,
+     "status": "ok",
+     "median": 30846.0,
+     "low": -126194.7709414381,
+     "high": 187886.7709414381,
+     "z": -0.44331481297911707,
+     "baseline_days": 5,
+     "event": "E1-volume-lull"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 467753.0,
+     "status": "expected",
+     "median": 20900.5,
+     "low": -78147.6838398814,
+     "high": 119948.6838398814,
+     "z": 15.790130513935456,
+     "baseline_days": 6,
+     "event": "E1-volume-lull"
+    },
+    {
+     "date": "2024-01-07",
+     "value": 446425.0,
+     "status": "expected",
+     "median": 30846.0,
+     "low": -126194.7709414381,
+     "high": 187886.7709414381,
+     "z": 9.262094749537404,
+     "baseline_days": 7,
+     "event": "E1-volume-lull"
+    },
+    {
+     "date": "2024-01-08",
+     "value": 477105.0,
+     "status": "ok",
+     "median": 446425.0,
+     "low": -389081.30096367677,
+     "high": 1281931.3009636768,
+     "z": 0.12852087396127046,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 445288.0,
+     "status": "ok",
+     "median": 446425.0,
+     "low": 265063.2505559674,
+     "high": 627786.7494440326,
+     "z": -0.021942333552688046,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 415186.0,
+     "status": "ok",
+     "median": 445288.0,
+     "low": 280188.6671608599,
+     "high": 610387.3328391401,
+     "z": -0.6381430996008423,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 442895.0,
+     "status": "ok",
+     "median": 445288.0,
+     "low": 289087.85174203117,
+     "high": 601488.1482579688,
+     "z": -0.0536203076207561,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 370732.0,
+     "status": "ok",
+     "median": 445288.0,
+     "low": 328716.4655300222,
+     "high": 561859.5344699777,
+     "z": -2.238505319385711,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 454420.0,
+     "status": "ok",
+     "median": 445288.0,
+     "low": 328716.4655300222,
+     "high": 561859.5344699777,
+     "z": 0.2741835744491431,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 421182.0,
+     "status": "ok",
+     "median": 445288.0,
+     "low": 356230.4,
+     "high": 534345.6,
+     "z": -1.7804968243539203,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 426998.0,
+     "status": "ok",
+     "median": 442895.0,
+     "low": 330225.6152705708,
+     "high": 555564.3847294291,
+     "z": -0.49382980242251184,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 398590.0,
+     "status": "ok",
+     "median": 426998.0,
+     "low": 341598.4,
+     "high": 512397.6,
+     "z": -1.2053340881927408,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 450775.0,
+     "status": "ok",
+     "median": 421182.0,
+     "low": 308512.6152705708,
+     "high": 533851.3847294291,
+     "z": 0.9192869939667481,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 21924.0,
+     "status": "expected",
+     "median": 426998.0,
+     "low": 303618.4595997035,
+     "high": 550377.5404002966,
+     "z": -11.491038104050132,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 12252.0,
+     "status": "expected",
+     "median": 421182.0,
+     "low": 267623.0674573758,
+     "high": 574740.9325426242,
+     "z": -9.320558409083228,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 21030.0,
+     "status": "expected",
+     "median": 421182.0,
+     "low": 267623.0674573758,
+     "high": 574740.9325426242,
+     "z": -9.120485385057277,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 27087.0,
+     "status": "expected",
+     "median": 398590.0,
+     "low": 127800.5263157895,
+     "high": 669379.4736842106,
+     "z": -4.801739455782313,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 55848.0,
+     "status": "ok",
+     "median": 27087.0,
+     "low": -49892.24388435879,
+     "high": 104066.24388435879,
+     "z": 1.3076706774519717,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 54018.0,
+     "status": "ok",
+     "median": 27087.0,
+     "low": -49892.24388435879,
+     "high": 104066.24388435879,
+     "z": 1.2244664307381194,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 35203.0,
+     "status": "ok",
+     "median": 27087.0,
+     "low": -49892.24388435879,
+     "high": 104066.24388435879,
+     "z": 0.36900856083586114,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 61922.0,
+     "status": "ok",
+     "median": 27087.0,
+     "low": -15027.158636026688,
+     "high": 69201.1586360267,
+     "z": 2.8950477451946774,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 13992.0,
+     "status": "ok",
+     "median": 35203.0,
+     "low": -62428.57894736843,
+     "high": 132834.57894736843,
+     "z": -0.7603943396226415,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 9558.0,
+     "status": "ok",
+     "median": 35203.0,
+     "low": -62428.57894736843,
+     "high": 132834.57894736843,
+     "z": -0.9193490566037735,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 15865.0,
+     "status": "ok",
+     "median": 35203.0,
+     "low": -71924.50185322462,
+     "high": 142330.50185322462,
+     "z": -0.6317985468636473,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 57924.0,
+     "status": "ok",
+     "median": 35203.0,
+     "low": -71924.50185322462,
+     "high": 142330.50185322462,
+     "z": 0.7423257205134415,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 12161.0,
+     "status": "ok",
+     "median": 35203.0,
+     "low": -74861.49221645664,
+     "high": 145267.49221645662,
+     "z": -0.7327249540332846,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 475.0,
+     "status": "ok",
+     "median": 15865.0,
+     "low": -16862.20533728688,
+     "high": 48592.20533728688,
+     "z": -1.6458783890914856,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "ml_features",
+   "metric": "null_share",
+   "dimension": "amount_to_receiver_avg_7d_ratio",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 0.48586081096377043,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 0.4266251938546431,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 0.6514018691588785,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 0.5580382436260624,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 0.6054755337623864,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 0.42217435176471924,
+     "status": "ok",
+     "median": 0.5580382436260624,
+     "low": 0.18350745886991449,
+     "high": 0.9325690283822102,
+     "z": -1.2696516304375571,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 0.42301044026981593,
+     "status": "ok",
+     "median": 0.5219495272949164,
+     "low": 0.05791973509543413,
+     "high": 0.9859793194943987,
+     "z": -0.7462598531582775,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 0.4265596470041389,
+     "status": "ok",
+     "median": 0.48586081096377043,
+     "low": 0.1553899329850022,
+     "high": 0.8163316889425387,
+     "z": -0.6280555646178453,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 0.4374460122655347,
+     "status": "ok",
+     "median": 0.4266251938546431,
+     "low": 0.3413001550837145,
+     "high": 0.5119502326255717,
+     "z": 1.6398339619079256,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 0.43027141202967334,
+     "status": "ok",
+     "median": 0.4374460122655347,
+     "low": 0.34995680981242777,
+     "high": 0.5249352147186417,
+     "z": -0.3168789575193925,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 0.4333255954759859,
+     "status": "ok",
+     "median": 0.43027141202967334,
+     "low": 0.3442171296237387,
+     "high": 0.516325694435608,
+     "z": 0.2837150181366765,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 0.44134245917387127,
+     "status": "ok",
+     "median": 0.43027141202967334,
+     "low": 0.3442171296237387,
+     "high": 0.516325694435608,
+     "z": 1.04081357194461,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 0.4254718455935023,
+     "status": "ok",
+     "median": 0.43027141202967334,
+     "low": 0.3442171296237387,
+     "high": 0.516325694435608,
+     "z": -0.45121783162441137,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 0.4317123928057988,
+     "status": "ok",
+     "median": 0.43027141202967334,
+     "low": 0.3442171296237387,
+     "high": 0.516325694435608,
+     "z": 0.202506111004482,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 0.42958318588922506,
+     "status": "ok",
+     "median": 0.4317123928057988,
+     "low": 0.34536991424463903,
+     "high": 0.5180548713669586,
+     "z": -0.2787154888887306,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 0.43619440140151333,
+     "status": "ok",
+     "median": 0.4317123928057988,
+     "low": 0.34536991424463903,
+     "high": 0.5180548713669586,
+     "z": 1.4198313814770662,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 0.43256624530845583,
+     "status": "ok",
+     "median": 0.4317123928057988,
+     "low": 0.34536991424463903,
+     "high": 0.5180548713669586,
+     "z": 0.27048733899893235,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 0.47459402828706126,
+     "status": "ok",
+     "median": 0.43256624530845583,
+     "low": 0.34605299624676467,
+     "high": 0.519079494370147,
+     "z": 9.50290813395171,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 0.49601769911504423,
+     "status": "ok",
+     "median": 0.43256624530845583,
+     "low": 0.34605299624676467,
+     "high": 0.519079494370147,
+     "z": 11.796076159578178,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 0.48988695696253864,
+     "status": "ok",
+     "median": 0.43256624530845583,
+     "low": 0.34605299624676467,
+     "high": 0.519079494370147,
+     "z": 10.656327627320229,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 0.5156751921278413,
+     "status": "ok",
+     "median": 0.43619440140151333,
+     "low": 0.34895552112121064,
+     "high": 0.523433281681816,
+     "z": 8.108916317319204,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 0.5668169994573049,
+     "status": "ok",
+     "median": 0.47459402828706126,
+     "low": 0.275337254233069,
+     "high": 0.6738508023410535,
+     "z": 1.6199218351712827,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 0.640398337646044,
+     "status": "expected",
+     "median": 0.48988695696253864,
+     "low": 0.3560710591440668,
+     "high": 0.6237028547810105,
+     "z": 3.9366759927649717,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 0.7594545843651594,
+     "status": "expected",
+     "median": 0.49601769911504423,
+     "low": 0.3848496518238057,
+     "high": 0.6071857464062828,
+     "z": 8.294011821219343,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 0.8555822515686309,
+     "status": "expected",
+     "median": 0.5156751921278413,
+     "low": 0.30250384528910135,
+     "high": 0.7288465389665812,
+     "z": 5.580837789342906,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 0.8480374504861361,
+     "status": "ok",
+     "median": 0.5668169994573049,
+     "low": 0.185001308337087,
+     "high": 0.9486326905775229,
+     "z": 2.577870950544573,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 0.8377244112846818,
+     "status": "ok",
+     "median": 0.640398337646044,
+     "low": -0.006793670231953874,
+     "high": 1.287590345524042,
+     "z": 1.0671350222628597,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 0.8512379783098015,
+     "status": "ok",
+     "median": 0.7594545843651594,
+     "low": 0.26064534016627133,
+     "high": 1.2582638285640475,
+     "z": 0.6440174927434983,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 0.8480233193660047,
+     "status": "ok",
+     "median": 0.8377244112846818,
+     "low": 0.6701795290277455,
+     "high": 1.005269293541618,
+     "z": 0.38899516349107727,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 0.8772038628510676,
+     "status": "ok",
+     "median": 0.8480233193660047,
+     "low": 0.6784186554928038,
+     "high": 1.0176279832392057,
+     "z": 2.6038435129550144,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 0.9080882352941176,
+     "status": "ok",
+     "median": 0.8480374504861361,
+     "low": 0.6784299603889089,
+     "high": 1.0176449405833634,
+     "z": 5.36849864033663,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_median",
+   "dimension": "cash_in",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 144378.25,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 143097.88,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 140473.19,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 135480.45,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 139040.54,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 146756.87,
+     "status": "ok",
+     "median": 140473.19,
+     "low": 112378.552,
+     "high": 168567.828,
+     "z": 1.6147972370070338,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 143125.97,
+     "status": "ok",
+     "median": 141785.535,
+     "low": 113428.428,
+     "high": 170142.642,
+     "z": 0.3387682760959287,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 141625.7,
+     "status": "ok",
+     "median": 143097.88,
+     "low": 114478.304,
+     "high": 171717.456,
+     "z": -0.37832483455188776,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 135250.3,
+     "status": "ok",
+     "median": 141625.7,
+     "low": 113300.56000000001,
+     "high": 169950.84000000003,
+     "z": -2.8662889346584586,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 145433.45,
+     "status": "ok",
+     "median": 140473.19,
+     "low": 112378.552,
+     "high": 168567.828,
+     "z": 1.2612034808766681,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 138753.88,
+     "status": "ok",
+     "median": 141625.7,
+     "low": 113300.56000000001,
+     "high": 169950.84000000003,
+     "z": -0.508710548224018,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 130427.54,
+     "status": "ok",
+     "median": 141625.7,
+     "low": 113300.56000000001,
+     "high": 169950.84000000003,
+     "z": -2.6300948248845657,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 150794.07,
+     "status": "ok",
+     "median": 141625.7,
+     "low": 113300.56000000001,
+     "high": 169950.84000000003,
+     "z": 1.6240734199986862,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 150031.45,
+     "status": "ok",
+     "median": 141625.7,
+     "low": 113300.56000000001,
+     "high": 169950.84000000003,
+     "z": 1.48898388155735,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 144213.88,
+     "status": "ok",
+     "median": 141625.7,
+     "low": 108543.56508524822,
+     "high": 174707.83491475182,
+     "z": 0.27382241271135754,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 145116.8,
+     "status": "ok",
+     "median": 144213.88,
+     "low": 114026.34108228314,
+     "high": 174401.41891771686,
+     "z": 0.10468624185011753,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 148155.45,
+     "status": "ok",
+     "median": 145116.8,
+     "low": 116093.43999999999,
+     "high": 174140.15999999997,
+     "z": 0.41703263202873164,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 139498.74,
+     "status": "ok",
+     "median": 145116.8,
+     "low": 116093.43999999999,
+     "high": 174140.15999999997,
+     "z": -0.7710379111432107,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 128763.5,
+     "status": "ok",
+     "median": 145116.8,
+     "low": 116093.43999999999,
+     "high": 174140.15999999997,
+     "z": -2.244371593094104,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 150888.66,
+     "status": "ok",
+     "median": 145116.8,
+     "low": 116093.43999999999,
+     "high": 174140.15999999997,
+     "z": 0.7921458435493864,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 144024.67,
+     "status": "ok",
+     "median": 145116.8,
+     "low": 116093.43999999999,
+     "high": 174140.15999999997,
+     "z": -0.14988690649384595,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 139406.49,
+     "status": "ok",
+     "median": 144213.88,
+     "low": 115371.104,
+     "high": 173056.65600000002,
+     "z": -0.8226631913171665,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 148461.94,
+     "status": "ok",
+     "median": 144024.67,
+     "low": 115219.736,
+     "high": 172829.60400000002,
+     "z": 0.6612869874257838,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 150322.13,
+     "status": "ok",
+     "median": 144024.67,
+     "low": 115219.736,
+     "high": 172829.60400000002,
+     "z": 0.9385113711436045,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 143360.07,
+     "status": "ok",
+     "median": 144024.67,
+     "low": 115219.736,
+     "high": 172829.60400000002,
+     "z": -0.09706696144368598,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 139228.96,
+     "status": "ok",
+     "median": 144024.67,
+     "low": 115219.736,
+     "high": 172829.60400000002,
+     "z": -0.7004288258578052,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 147170.26,
+     "status": "ok",
+     "median": 144024.67,
+     "low": 115219.736,
+     "high": 172829.60400000002,
+     "z": 0.45942350774547275,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 146346.57,
+     "status": "ok",
+     "median": 144024.67,
+     "low": 115219.736,
+     "high": 172829.60400000002,
+     "z": 0.352947093595837,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 141155.57,
+     "status": "ok",
+     "median": 146346.57,
+     "low": 117077.25600000001,
+     "high": 175615.88400000002,
+     "z": -1.172385568391093,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 144731.56,
+     "status": "ok",
+     "median": 146346.57,
+     "low": 117077.25600000001,
+     "high": 175615.88400000002,
+     "z": -0.3647494542106165,
+     "baseline_days": 7,
+     "event": null
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_median",
+   "dimension": "cash_out",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 153688.51,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 155224.99,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 263452.52,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 144626.32,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 159217.21,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 158368.58,
+     "status": "ok",
+     "median": 155224.99,
+     "low": 124179.992,
+     "high": 186269.98799999998,
+     "z": 0.5311208938886126,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 153125.15,
+     "status": "ok",
+     "median": 156796.78499999997,
+     "low": 125437.42799999999,
+     "high": 188156.14199999996,
+     "z": -0.8958770805071696,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 147688.13,
+     "status": "ok",
+     "median": 155224.99,
+     "low": 124179.992,
+     "high": 186269.98799999998,
+     "z": -1.6171358446871238,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 136296.2,
+     "status": "ok",
+     "median": 155224.99,
+     "low": 124179.992,
+     "high": 186269.98799999998,
+     "z": -3.198087493925681,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 149969.82,
+     "status": "ok",
+     "median": 153125.15,
+     "low": 121513.27453669385,
+     "high": 184737.02546330614,
+     "z": -0.3493514648575346,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 139433.62,
+     "status": "ok",
+     "median": 149969.82,
+     "low": 119975.856,
+     "high": 179963.784,
+     "z": -1.3299647983531406,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 124438.25,
+     "status": "ok",
+     "median": 149969.82,
+     "low": 106388.41154929588,
+     "high": 193551.22845070413,
+     "z": -2.050426963623207,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 152988.23,
+     "status": "ok",
+     "median": 147688.13,
+     "low": 104855.23896960707,
+     "high": 190521.02103039293,
+     "z": 0.4330865732793346,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 152005.38,
+     "status": "ok",
+     "median": 147688.13,
+     "low": 118150.504,
+     "high": 177225.756,
+     "z": 0.5355847734604628,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 146740.54,
+     "status": "ok",
+     "median": 147688.13,
+     "low": 118150.504,
+     "high": 177225.756,
+     "z": -0.12059196147242446,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 146290.03,
+     "status": "ok",
+     "median": 146740.54,
+     "low": 114321.09596738324,
+     "high": 179159.98403261678,
+     "z": -0.04863701544090795,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 144488.78,
+     "status": "ok",
+     "median": 146740.54,
+     "low": 117392.432,
+     "high": 176088.64800000002,
+     "z": -0.2884821039195887,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 140058.75,
+     "status": "ok",
+     "median": 146290.03,
+     "low": 116632.9136174944,
+     "high": 175947.1463825056,
+     "z": -0.7353877470321144,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 128252.58,
+     "status": "ok",
+     "median": 146290.03,
+     "low": 116632.9136174944,
+     "high": 175947.1463825056,
+     "z": -2.1286990341798813,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 145336.67,
+     "status": "ok",
+     "median": 146290.03,
+     "low": 116632.9136174944,
+     "high": 175947.1463825056,
+     "z": -0.11251127577488516,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 144600.43,
+     "status": "ok",
+     "median": 145336.67,
+     "low": 116269.33600000001,
+     "high": 174404.00400000002,
+     "z": -0.35373209770136477,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 139727.73,
+     "status": "ok",
+     "median": 144600.43,
+     "low": 115680.344,
+     "high": 173520.516,
+     "z": -1.945215524384456,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 140371.04,
+     "status": "ok",
+     "median": 144488.78,
+     "low": 115591.024,
+     "high": 173386.536,
+     "z": -1.5419378931297674,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 146274.02,
+     "status": "ok",
+     "median": 140371.04,
+     "low": 112296.83200000001,
+     "high": 168445.24800000002,
+     "z": 0.9669284631861158,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 136279.66,
+     "status": "ok",
+     "median": 140371.04,
+     "low": 112296.83200000001,
+     "high": 168445.24800000002,
+     "z": -0.6524902669179273,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 123951.89,
+     "status": "ok",
+     "median": 140371.04,
+     "low": 112296.83200000001,
+     "high": 168445.24800000002,
+     "z": -2.618513940544628,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 157411.0,
+     "status": "ok",
+     "median": 140371.04,
+     "low": 112296.83200000001,
+     "high": 168445.24800000002,
+     "z": 2.717520261787169,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 154244.05,
+     "status": "ok",
+     "median": 140371.04,
+     "low": 112296.83200000001,
+     "high": 168445.24800000002,
+     "z": 2.212457409933825,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 144344.77,
+     "status": "ok",
+     "median": 140371.04,
+     "low": 109740.30612305422,
+     "high": 171001.7738769458,
+     "z": 0.45405555922601737,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 146185.22,
+     "status": "ok",
+     "median": 144344.77,
+     "low": 102494.68104521875,
+     "high": 186194.85895478123,
+     "z": 0.15392022241482262,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 320304.77,
+     "status": "expected",
+     "median": 146185.22,
+     "low": 104367.71814677546,
+     "high": 188002.72185322456,
+     "z": 14.573286255573104,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_median",
+   "dimension": "debit",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 3603.47,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 2843.47,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 1188.1,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 2476.19,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 2615.56,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 2955.65,
+     "status": "ok",
+     "median": 2615.56,
+     "low": 1432.9284210526323,
+     "high": 3798.191578947368,
+     "z": 1.0064968847352036,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 3620.37,
+     "status": "ok",
+     "median": 2729.515,
+     "low": 1485.549099332839,
+     "high": 3973.4809006671608,
+     "z": 2.506493544821257,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 2726.43,
+     "status": "ok",
+     "median": 2843.47,
+     "low": 937.6434618235742,
+     "high": 4749.296538176425,
+     "z": -0.21494086255717718,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 2868.68,
+     "status": "ok",
+     "median": 2726.43,
+     "low": 1537.000793180132,
+     "high": 3915.8592068198677,
+     "z": 0.41858312974434997,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 3088.65,
+     "status": "ok",
+     "median": 2726.43,
+     "low": 1537.000793180132,
+     "high": 3915.8592068198677,
+     "z": 1.0658641916063165,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 3412.91,
+     "status": "ok",
+     "median": 2868.68,
+     "low": 1727.2493106004433,
+     "high": 4010.1106893995566,
+     "z": 1.6687872664454226,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 2880.2,
+     "status": "ok",
+     "median": 2955.65,
+     "low": 1766.2207931801322,
+     "high": 4145.079206819868,
+     "z": -0.2220182575691481,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 3335.0,
+     "status": "ok",
+     "median": 2955.65,
+     "low": 2265.5091549295776,
+     "high": 3645.7908450704226,
+     "z": 1.923846428571428,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 3367.68,
+     "status": "ok",
+     "median": 3088.65,
+     "low": 1810.3327279466278,
+     "high": 4366.967272053373,
+     "z": 0.7639770042622281,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 3263.15,
+     "status": "ok",
+     "median": 3088.65,
+     "low": 1810.3327279466278,
+     "high": 4366.967272053373,
+     "z": 0.4777765374467223,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 3397.84,
+     "status": "ok",
+     "median": 3263.15,
+     "low": 2486.0410303928847,
+     "high": 4040.2589696071154,
+     "z": 0.606626635950856,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 2582.85,
+     "status": "anomaly",
+     "median": 3335.0,
+     "low": 2668.0,
+     "high": 4002.0,
+     "z": -7.060893180236614,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 1810.56,
+     "status": "expected",
+     "median": 3335.0,
+     "low": 2668.0,
+     "high": 4002.0,
+     "z": -14.310852887961047,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 2189.84,
+     "status": "expected",
+     "median": 3263.15,
+     "low": 2564.2396960711635,
+     "high": 3962.0603039288367,
+     "z": -5.374917180191549,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 1479.31,
+     "status": "expected",
+     "median": 3263.15,
+     "low": 2564.2396960711635,
+     "high": 3962.0603039288367,
+     "z": -8.933106243967627,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 2150.21,
+     "status": "ok",
+     "median": 2582.85,
+     "low": -1424.5851371386211,
+     "high": 6590.2851371386205,
+     "z": -0.37785764414921846,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 2334.1,
+     "status": "ok",
+     "median": 2189.84,
+     "low": 150.4997479614542,
+     "high": 4229.180252038546,
+     "z": 0.24758497239255975,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 2739.8,
+     "status": "ok",
+     "median": 2189.84,
+     "low": 221.74511489992506,
+     "high": 4157.934885100075,
+     "z": 0.9780321134781688,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 2517.22,
+     "status": "ok",
+     "median": 2189.84,
+     "low": 221.74511489992506,
+     "high": 4157.934885100075,
+     "z": 0.582202620755114,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 2116.42,
+     "status": "ok",
+     "median": 2189.84,
+     "low": 491.05571534470164,
+     "high": 3888.6242846552987,
+     "z": -0.1512669985949053,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 2437.14,
+     "status": "ok",
+     "median": 2189.84,
+     "low": 1441.2706893995564,
+     "high": 2938.409310600444,
+     "z": 1.1562723554692922,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 1160.81,
+     "status": "anomaly",
+     "median": 2334.1,
+     "low": 1379.8894736842112,
+     "high": 3288.3105263157886,
+     "z": -4.303573359073362,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 1630.25,
+     "status": "ok",
+     "median": 2334.1,
+     "low": 1379.8894736842112,
+     "high": 3288.3105263157886,
+     "z": -2.581689189189191,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 2769.65,
+     "status": "ok",
+     "median": 2334.1,
+     "low": 1204.5521868050414,
+     "high": 3463.6478131949584,
+     "z": 1.3495887311650145,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 3085.16,
+     "status": "ok",
+     "median": 2437.14,
+     "low": 772.9146478873249,
+     "high": 4101.365352112674,
+     "z": 1.3628382701421808,
+     "baseline_days": 7,
+     "event": null
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_median",
+   "dimension": "payment",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 8922.79,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 8345.24,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 4373.61,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 6338.98,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 6796.84,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 10887.51,
+     "status": "ok",
+     "median": 6796.84,
+     "low": -1237.8523647146012,
+     "high": 14831.532364714601,
+     "z": 1.781940658098683,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 9542.99,
+     "status": "ok",
+     "median": 7571.04,
+     "low": 867.3076056337995,
+     "high": 14274.7723943662,
+     "z": 1.0295495992352373,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 8087.92,
+     "status": "ok",
+     "median": 8345.24,
+     "low": 310.5476352853984,
+     "high": 16379.932364714601,
+     "z": -0.11209141048824584,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 7192.62,
+     "status": "ok",
+     "median": 8087.92,
+     "low": 537.5197034840639,
+     "high": 15638.320296515936,
+     "z": -0.4150177311057202,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 10112.62,
+     "status": "ok",
+     "median": 7192.62,
+     "low": 2546.8824166048917,
+     "high": 11838.357583395107,
+     "z": 2.199865966715068,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 7772.51,
+     "status": "ok",
+     "median": 8087.92,
+     "low": 537.5197034840639,
+     "high": 15638.320296515936,
+     "z": -0.14620880438741773,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 7938.15,
+     "status": "ok",
+     "median": 8087.92,
+     "low": 1388.4685544848035,
+     "high": 14787.371445515197,
+     "z": -0.07824446587353247,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 13271.65,
+     "status": "anomaly",
+     "median": 8087.92,
+     "low": 3442.182416604892,
+     "high": 12733.657583395108,
+     "z": 3.9053120574109226,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 12723.51,
+     "status": "ok",
+     "median": 8087.92,
+     "low": 3442.182416604892,
+     "high": 12733.657583395108,
+     "z": 3.4923550262481844,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 11181.39,
+     "status": "ok",
+     "median": 8087.92,
+     "low": 3442.182416604892,
+     "high": 12733.657583395108,
+     "z": 2.3305545794705673,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 10231.92,
+     "status": "ok",
+     "median": 10112.62,
+     "low": -2030.2784432913286,
+     "high": 22255.51844329133,
+     "z": 0.03438635363294866,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 12203.87,
+     "status": "ok",
+     "median": 10231.92,
+     "low": -1670.5188435878445,
+     "high": 22134.358843587845,
+     "z": 0.5798664534805147,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 7863.45,
+     "status": "ok",
+     "median": 11181.39,
+     "low": 3179.2847368421008,
+     "high": 19183.4952631579,
+     "z": -1.4512168508287282,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 7565.99,
+     "status": "ok",
+     "median": 11181.39,
+     "low": 3179.2847368421008,
+     "high": 19183.4952631579,
+     "z": -1.5813213627992624,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 8407.09,
+     "status": "ok",
+     "median": 11181.39,
+     "low": 3179.2847368421008,
+     "high": 19183.4952631579,
+     "z": -1.2134369244935534,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 8582.22,
+     "status": "ok",
+     "median": 10231.92,
+     "low": -0.5855596738365421,
+     "high": 20464.425559673837,
+     "z": -0.5642752858845306,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 9679.29,
+     "status": "ok",
+     "median": 8582.22,
+     "low": 3308.97315048184,
+     "high": 13855.466849518158,
+     "z": 0.7281557472225788,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 9181.26,
+     "status": "ok",
+     "median": 8582.22,
+     "low": 3308.97315048184,
+     "high": 13855.466849518158,
+     "z": 0.3975994410714117,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 8102.61,
+     "status": "ok",
+     "median": 8582.22,
+     "low": 4852.501690140847,
+     "high": 12311.938309859152,
+     "z": -0.45007018239492463,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 7565.92,
+     "status": "ok",
+     "median": 8407.09,
+     "low": 5586.12632320237,
+     "high": 11228.05367679763,
+     "z": -1.0436486737546902,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 7467.16,
+     "status": "ok",
+     "median": 8407.09,
+     "low": 4389.899488510007,
+     "high": 12424.280511489993,
+     "z": -0.8189193394215742,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 9427.49,
+     "status": "ok",
+     "median": 8407.09,
+     "low": 4389.899488510007,
+     "high": 12424.280511489993,
+     "z": 0.8890292829740233,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 7155.32,
+     "status": "ok",
+     "median": 8582.22,
+     "low": 4196.089532987395,
+     "high": 12968.350467012604,
+     "z": -1.1386232209826437,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 9721.27,
+     "status": "ok",
+     "median": 8102.61,
+     "low": 3187.0948035581914,
+     "high": 13018.125196441808,
+     "z": 1.152536361621046,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 9744.55,
+     "status": "ok",
+     "median": 8102.61,
+     "low": 3187.0948035581914,
+     "high": 13018.125196441808,
+     "z": 1.1691124470858973,
+     "baseline_days": 7,
+     "event": null
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_median",
+   "dimension": "transfer",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 496059.44,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 422095.97,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 401529.35,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 355036.79,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 441532.82,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 489681.56,
+     "status": "ok",
+     "median": 422095.97,
+     "low": 315375.184232765,
+     "high": 528816.755767235,
+     "z": 2.2165275798842994,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 472080.09,
+     "status": "ok",
+     "median": 431814.395,
+     "low": 203102.2119014084,
+     "high": 660526.5780985916,
+     "z": 0.6161890048474111,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 448246.89,
+     "status": "ok",
+     "median": 441532.82,
+     "low": 233953.65765752393,
+     "high": 649111.982342476,
+     "z": 0.11320618473847398,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 382258.54,
+     "status": "ok",
+     "median": 441532.82,
+     "low": 283022.15283914004,
+     "high": 600043.48716086,
+     "z": -1.3088076891977578,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 507317.03,
+     "status": "ok",
+     "median": 441532.82,
+     "low": 233953.65765752393,
+     "high": 649111.982342476,
+     "z": 1.1091900188908608,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 403434.68,
+     "status": "ok",
+     "median": 448246.89,
+     "low": 233241.18948109722,
+     "high": 663252.5905189028,
+     "z": -0.7294817515138898,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 325655.69,
+     "status": "ok",
+     "median": 448246.89,
+     "low": 233241.18948109722,
+     "high": 663252.5905189028,
+     "z": -1.9956177857818111,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 828991.22,
+     "status": "anomaly",
+     "median": 448246.89,
+     "low": 215715.03677538908,
+     "high": 680778.7432246109,
+     "z": 5.730849930967471,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 748410.29,
+     "status": "ok",
+     "median": 448246.89,
+     "low": 141730.2258042994,
+     "high": 754763.5541957007,
+     "z": 3.4274544346771476,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 650559.41,
+     "status": "ok",
+     "median": 448246.89,
+     "low": 105831.43410674558,
+     "high": 790662.3458932545,
+     "z": 2.0679376699068843,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 498841.21,
+     "status": "ok",
+     "median": 507317.03,
+     "low": -235971.82100074133,
+     "high": 1250605.8810007414,
+     "z": -0.03991095784641392,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 550517.86,
+     "status": "ok",
+     "median": 507317.03,
+     "low": -235971.82100074133,
+     "high": 1250605.8810007414,
+     "z": 0.2034241530683864,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 418979.33,
+     "status": "ok",
+     "median": 550517.86,
+     "low": -212701.01323943667,
+     "high": 1313736.7332394365,
+     "z": -0.6032147148640652,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 384465.42,
+     "status": "ok",
+     "median": 550517.86,
+     "low": -132039.37498888047,
+     "high": 1233075.0949888804,
+     "z": -0.8514795686100493,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 457263.4,
+     "status": "ok",
+     "median": 550517.86,
+     "low": -132039.37498888047,
+     "high": 1233075.0949888804,
+     "z": -0.4781878987852456,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 496482.01,
+     "status": "ok",
+     "median": 498841.21,
+     "low": 84435.60584877688,
+     "high": 913246.8141512232,
+     "z": -0.01992540621382827,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 470140.78,
+     "status": "ok",
+     "median": 496482.01,
+     "low": 216088.42215715355,
+     "high": 776875.5978428465,
+     "z": -0.32880318594044494,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 439529.96,
+     "status": "ok",
+     "median": 470140.78,
+     "low": 321213.4189918459,
+     "high": 619068.1410081541,
+     "z": -0.7193968205354417,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 386772.59,
+     "status": "ok",
+     "median": 457263.4,
+     "low": 258606.25396590066,
+     "high": 655920.5460340994,
+     "z": -1.2419278134482565,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 378862.31,
+     "status": "ok",
+     "median": 439529.96,
+     "low": 280689.5300518903,
+     "high": 598370.3899481097,
+     "z": -1.3367930008082112,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 326082.65,
+     "status": "ok",
+     "median": 439529.96,
+     "low": 165770.44183839887,
+     "high": 713289.4781616011,
+     "z": -1.4504174600629258,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 398657.59,
+     "status": "ok",
+     "median": 439529.96,
+     "low": 165770.44183839887,
+     "high": 713289.4781616011,
+     "z": -0.5225509452992065,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 416508.58,
+     "status": "ok",
+     "median": 398657.59,
+     "low": 186569.68043736106,
+     "high": 610745.499562639,
+     "z": 0.29458758459565704,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 395072.15,
+     "status": "ok",
+     "median": 398657.59,
+     "low": 295939.30979243875,
+     "high": 501375.8702075613,
+     "z": -0.12216949090894386,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 358952.57,
+     "status": "ok",
+     "median": 395072.15,
+     "low": 310958.82160859887,
+     "high": 479185.4783914012,
+     "z": -1.5029547922743205,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 361671.61,
+     "status": "ok",
+     "median": 386772.59,
+     "low": 309418.07200000004,
+     "high": 464127.108,
+     "z": -1.4245360546907888,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_p95",
+   "dimension": "cash_in",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 420633.8,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 413347.23,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 453317.53,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 407174.74,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 414844.96,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 426228.49,
+     "status": "ok",
+     "median": 414844.96,
+     "low": 331875.968,
+     "high": 497813.95200000005,
+     "z": 1.3263781664374938,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 412544.45,
+     "status": "ok",
+     "median": 417739.38,
+     "low": 334191.504,
+     "high": 501287.256,
+     "z": -0.5440430959393713,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 406627.98,
+     "status": "ok",
+     "median": 414844.96,
+     "low": 331875.968,
+     "high": 497813.95200000005,
+     "z": -0.9574203139143692,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 389227.75,
+     "status": "ok",
+     "median": 413347.23,
+     "low": 330677.784,
+     "high": 496016.676,
+     "z": -2.6356606912283396,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 419280.45,
+     "status": "ok",
+     "median": 412544.45,
+     "low": 330035.56,
+     "high": 495053.34,
+     "z": 0.7679295255447888,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 404150.68,
+     "status": "ok",
+     "median": 412544.45,
+     "low": 330035.56,
+     "high": 495053.34,
+     "z": -0.9569215875344561,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 375244.99,
+     "status": "ok",
+     "median": 412544.45,
+     "low": 330035.56,
+     "high": 495053.34,
+     "z": -3.7349295976840877,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 423000.16,
+     "status": "ok",
+     "median": 406627.98,
+     "low": 325302.38399999996,
+     "high": 487953.576,
+     "z": 0.872796806473358,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 422298.72,
+     "status": "ok",
+     "median": 406627.98,
+     "low": 325302.38399999996,
+     "high": 487953.576,
+     "z": 0.835403216130919,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 412347.57,
+     "status": "ok",
+     "median": 406627.98,
+     "low": 325302.38399999996,
+     "high": 487953.576,
+     "z": 0.24618259603567025,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 414630.37,
+     "status": "ok",
+     "median": 412347.57,
+     "low": 329878.056,
+     "high": 494817.08400000003,
+     "z": 0.15473071956507514,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 418715.73,
+     "status": "ok",
+     "median": 414630.37,
+     "low": 331704.296,
+     "high": 497556.444,
+     "z": 0.3593439683895491,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 399514.48,
+     "status": "ok",
+     "median": 414630.37,
+     "low": 331704.296,
+     "high": 497556.444,
+     "z": -1.3295777846603298,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 383341.65,
+     "status": "ok",
+     "median": 414630.37,
+     "low": 331704.296,
+     "high": 497556.444,
+     "z": -2.752122899971969,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 425573.3,
+     "status": "ok",
+     "median": 414630.37,
+     "low": 331704.296,
+     "high": 497556.444,
+     "z": 0.9625286124133636,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 415391.22,
+     "status": "ok",
+     "median": 414630.37,
+     "low": 331704.296,
+     "high": 497556.444,
+     "z": 0.06692356569535635,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 397701.55,
+     "status": "ok",
+     "median": 414630.37,
+     "low": 331704.296,
+     "high": 497556.444,
+     "z": -2.7949774536393472,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 407047.02,
+     "status": "ok",
+     "median": 414630.37,
+     "low": 331704.296,
+     "high": 497556.444,
+     "z": -0.4674223060003114,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 422316.39,
+     "status": "ok",
+     "median": 407047.02,
+     "low": 325637.61600000004,
+     "high": 488456.424,
+     "z": 1.1020515891656562,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 403928.04,
+     "status": "ok",
+     "median": 407047.02,
+     "low": 325637.61600000004,
+     "high": 488456.424,
+     "z": -0.22510927861306276,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 402032.58,
+     "status": "ok",
+     "median": 407047.02,
+     "low": 325637.61600000004,
+     "high": 488456.424,
+     "z": -0.36191221843310084,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 416974.76,
+     "status": "ok",
+     "median": 407047.02,
+     "low": 325637.61600000004,
+     "high": 488456.424,
+     "z": 0.8025048093286391,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 421271.22,
+     "status": "ok",
+     "median": 407047.02,
+     "low": 325637.61600000004,
+     "high": 488456.424,
+     "z": 1.149807399151509,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 398196.45,
+     "status": "ok",
+     "median": 407047.02,
+     "low": 325637.61600000004,
+     "high": 488456.424,
+     "z": -0.6387810848464535,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 373517.81,
+     "status": "ok",
+     "median": 407047.02,
+     "low": 325637.61600000004,
+     "high": 488456.424,
+     "z": -2.555253745803942,
+     "baseline_days": 7,
+     "event": null
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_p95",
+   "dimension": "cash_out",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 451957.09,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 444551.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 3859530.86,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 447822.13,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 569511.93,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 456271.52,
+     "status": "ok",
+     "median": 451957.09,
+     "low": 361565.672,
+     "high": 542348.508,
+     "z": 0.3929310925198026,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 443440.52,
+     "status": "ok",
+     "median": 454114.30500000005,
+     "low": 363291.444,
+     "high": 544937.1660000001,
+     "z": -0.9081362383857162,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 424273.91,
+     "status": "ok",
+     "median": 451957.09,
+     "low": 361565.672,
+     "high": 542348.508,
+     "z": -2.5212095599702367,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 392303.45,
+     "status": "ok",
+     "median": 447822.13,
+     "low": 358257.704,
+     "high": 537386.556,
+     "z": -4.431958953249872,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 441591.59,
+     "status": "ok",
+     "median": 447822.13,
+     "low": 325629.73563380266,
+     "high": 570014.5243661974,
+     "z": -0.17846356242637365,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 404001.58,
+     "status": "ok",
+     "median": 443440.52,
+     "low": 354752.416,
+     "high": 532128.6240000001,
+     "z": -2.073226173330216,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 358223.61,
+     "status": "ok",
+     "median": 441591.59,
+     "low": 351729.64782060764,
+     "high": 531453.5321793924,
+     "z": -3.247069036383618,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 436520.45,
+     "status": "ok",
+     "median": 424273.91,
+     "low": 319080.20355077856,
+     "high": 529467.6164492214,
+     "z": 0.4074662966713763,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 433269.31,
+     "status": "ok",
+     "median": 424273.91,
+     "low": 324817.81659747934,
+     "high": 523730.0034025206,
+     "z": 0.31656079504930723,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 422941.86,
+     "status": "ok",
+     "median": 424273.91,
+     "low": 334411.9678206076,
+     "high": 514135.85217939236,
+     "z": -0.05188152945429119,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 422126.31,
+     "status": "ok",
+     "median": 422941.86,
+     "low": 326167.8718606373,
+     "high": 519715.8481393627,
+     "z": -0.02949578760657613,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 414683.51,
+     "status": "ok",
+     "median": 422941.86,
+     "low": 338353.488,
+     "high": 507530.23199999996,
+     "z": -0.41022352652226585,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 432037.62,
+     "status": "ok",
+     "median": 422126.31,
+     "low": 337701.048,
+     "high": 506551.572,
+     "z": 0.599944233599569,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 404339.89,
+     "status": "ok",
+     "median": 422941.86,
+     "low": 338353.488,
+     "high": 507530.23199999996,
+     "z": -1.379437096515296,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 436956.12,
+     "status": "ok",
+     "median": 422941.86,
+     "low": 338353.488,
+     "high": 507530.23199999996,
+     "z": 1.0392334857120236,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 424416.07,
+     "status": "ok",
+     "median": 422941.86,
+     "low": 338353.488,
+     "high": 507530.23199999996,
+     "z": 0.10932067743652131,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 407596.69,
+     "status": "ok",
+     "median": 422941.86,
+     "low": 338353.488,
+     "high": 507530.23199999996,
+     "z": -1.253315391694469,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 397192.85,
+     "status": "ok",
+     "median": 422126.31,
+     "low": 337701.048,
+     "high": 506551.572,
+     "z": -1.696810892808319,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 432328.12,
+     "status": "ok",
+     "median": 414683.51,
+     "low": 331746.808,
+     "high": 497620.212,
+     "z": 1.150592292156904,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 392911.03,
+     "status": "ok",
+     "median": 424416.07,
+     "low": 339532.856,
+     "high": 509299.284,
+     "z": -1.6945825160186765,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 404233.16,
+     "status": "ok",
+     "median": 407596.69,
+     "low": 326077.352,
+     "high": 489116.028,
+     "z": -0.1544841011571848,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 478862.11,
+     "status": "ok",
+     "median": 407596.69,
+     "low": 326077.352,
+     "high": 489116.028,
+     "z": 3.2731607425202593,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 464205.04,
+     "status": "ok",
+     "median": 407596.69,
+     "low": 326077.352,
+     "high": 489116.028,
+     "z": 2.5999738571504483,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 417149.74,
+     "status": "ok",
+     "median": 407596.69,
+     "low": 326077.352,
+     "high": 489116.028,
+     "z": 0.438763543824384,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 436918.52,
+     "status": "ok",
+     "median": 417149.74,
+     "low": 313592.86083024455,
+     "high": 520706.61916975543,
+     "z": 0.6681422861979001,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 10000000.0,
+     "status": "expected",
+     "median": 432328.12,
+     "low": 286542.5603261674,
+     "high": 578113.6796738326,
+     "z": 229.69937252304314,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_p95",
+   "dimension": "debit",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 14889.42,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 10040.23,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 2728.04,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 7455.28,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 17799.93,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 15423.23,
+     "status": "ok",
+     "median": 10040.23,
+     "low": -15122.35710155671,
+     "high": 35202.817101556706,
+     "z": 0.7487505129722695,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 18046.13,
+     "status": "ok",
+     "median": 12464.825,
+     "low": -8208.136452928095,
+     "high": 33137.78645292809,
+     "z": 0.9449331942344016,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 20054.93,
+     "status": "ok",
+     "median": 14889.42,
+     "low": -1490.8394514455213,
+     "high": 31269.67945144552,
+     "z": 1.1037239705262756,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 9330.98,
+     "status": "ok",
+     "median": 15423.23,
+     "low": -8610.795203854712,
+     "high": 39457.255203854715,
+     "z": -0.8871953332469719,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 10540.16,
+     "status": "ok",
+     "median": 15423.23,
+     "low": -8610.795203854712,
+     "high": 39457.255203854715,
+     "z": -0.7111062277349568,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 46221.11,
+     "status": "anomaly",
+     "median": 15423.23,
+     "low": -8610.795203854712,
+     "high": 39457.255203854715,
+     "z": 4.48499904138869,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 18604.26,
+     "status": "ok",
+     "median": 17799.93,
+     "low": 5467.164988880648,
+     "high": 30132.69501111935,
+     "z": 0.22826632936424393,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 16901.94,
+     "status": "ok",
+     "median": 18046.13,
+     "low": 4435.826071163818,
+     "high": 31656.433928836184,
+     "z": -0.29423773494986505,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 18967.68,
+     "status": "ok",
+     "median": 18046.13,
+     "low": 7622.408724981473,
+     "high": 28469.85127501853,
+     "z": 0.3094312400438071,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 13958.4,
+     "status": "ok",
+     "median": 18604.26,
+     "low": 9770.872305411416,
+     "high": 27437.64769458858,
+     "z": -1.8408011243479485,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 13250.56,
+     "status": "ok",
+     "median": 16901.94,
+     "low": 1627.8258413639778,
+     "high": 32176.05415863602,
+     "z": -0.8366986044015031,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 9929.77,
+     "status": "ok",
+     "median": 16901.94,
+     "low": 1627.8258413639778,
+     "high": 32176.05415863602,
+     "z": -1.597643879478451,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 5198.56,
+     "status": "ok",
+     "median": 16901.94,
+     "low": 1627.8258413639778,
+     "high": 32176.05415863602,
+     "z": -2.6817810561432833,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 6294.33,
+     "status": "ok",
+     "median": 13958.4,
+     "low": -6946.277538917713,
+     "high": 34863.077538917714,
+     "z": -1.2831695179254488,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 4452.58,
+     "status": "ok",
+     "median": 13250.56,
+     "low": -5696.556382505556,
+     "high": 32197.676382505553,
+     "z": -1.625204035186697,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 168143.05,
+     "status": "expected",
+     "median": 9929.77,
+     "low": -10974.907538917712,
+     "high": 30834.447538917713,
+     "z": 26.489118474518637,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 8418.72,
+     "status": "ok",
+     "median": 9929.77,
+     "low": -10974.907538917712,
+     "high": 30834.447538917713,
+     "z": -0.25299003010949156,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 13466.11,
+     "status": "ok",
+     "median": 8418.72,
+     "low": -8290.783335804294,
+     "high": 25128.223335804294,
+     "z": 1.0572345954859392,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 20644.67,
+     "status": "ok",
+     "median": 8418.72,
+     "low": -8290.783335804294,
+     "high": 25128.223335804294,
+     "z": 2.5608675578232143,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 6621.55,
+     "status": "ok",
+     "median": 8418.72,
+     "low": -12161.695122312822,
+     "high": 28999.135122312822,
+     "z": -0.30563499145264655,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 7975.89,
+     "status": "ok",
+     "median": 8418.72,
+     "low": -12161.695122312822,
+     "high": 28999.135122312822,
+     "z": -0.07530970540626387,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 2524.63,
+     "status": "ok",
+     "median": 8418.72,
+     "low": -12161.695122312822,
+     "high": 28999.135122312822,
+     "z": -1.0023760394237218,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 10205.81,
+     "status": "ok",
+     "median": 8418.72,
+     "low": -17772.332631578953,
+     "high": 34609.772631578955,
+     "z": 0.2388149528766352,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 8489.0,
+     "status": "ok",
+     "median": 8418.72,
+     "low": -906.8470867309097,
+     "high": 17744.28708673091,
+     "z": 0.02637694820189546,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 11862.15,
+     "status": "ok",
+     "median": 8489.0,
+     "low": -1201.2520385470707,
+     "high": 18179.25203854707,
+     "z": 1.2183403437843048,
+     "baseline_days": 7,
+     "event": null
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_p95",
+   "dimension": "payment",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 29803.5,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 31036.05,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 21784.23,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 25625.37,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 25226.37,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 38839.48,
+     "status": "ok",
+     "median": 25625.37,
+     "low": 5693.583491475169,
+     "high": 45557.15650852483,
+     "z": 2.3203833223990804,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 30080.48,
+     "status": "ok",
+     "median": 27714.434999999998,
+     "low": 12641.136260192732,
+     "high": 42787.73373980726,
+     "z": 0.5493925147340305,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 31062.75,
+     "status": "ok",
+     "median": 29803.5,
+     "low": 8123.06263899184,
+     "high": 51483.93736100816,
+     "z": 0.2032881037689109,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 28552.21,
+     "status": "ok",
+     "median": 30080.48,
+     "low": 6962.785411415858,
+     "high": 53198.17458858414,
+     "z": -0.23137882454080821,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 43765.18,
+     "status": "anomaly",
+     "median": 28552.21,
+     "low": 13364.752624166047,
+     "high": 43739.66737583395,
+     "z": 3.5058794689836135,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 36933.81,
+     "status": "ok",
+     "median": 30080.48,
+     "low": 6962.785411415858,
+     "high": 53198.17458858414,
+     "z": 1.037588541023678,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 34532.03,
+     "status": "ok",
+     "median": 31062.75,
+     "low": 777.6054484803535,
+     "high": 61347.89455151965,
+     "z": 0.4009384858422513,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 49258.15,
+     "status": "ok",
+     "median": 34532.03,
+     "low": 12180.547420311319,
+     "high": 56883.51257968868,
+     "z": 2.3059508386632444,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 45756.68,
+     "status": "ok",
+     "median": 34532.03,
+     "low": 11432.808354336546,
+     "high": 57631.25164566345,
+     "z": 1.7007618526131352,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 40310.35,
+     "status": "ok",
+     "median": 36933.81,
+     "low": 1485.6335730170322,
+     "high": 72381.98642698297,
+     "z": 0.33338499159026663,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 37510.41,
+     "status": "ok",
+     "median": 40310.35,
+     "low": 12049.186174944392,
+     "high": 68571.5138250556,
+     "z": -0.34675818945969045,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 45370.1,
+     "status": "ok",
+     "median": 40310.35,
+     "low": 22383.137249814667,
+     "high": 58237.56275018533,
+     "z": 0.9878348211055242,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 42321.68,
+     "status": "ok",
+     "median": 40310.35,
+     "low": 14055.160971089696,
+     "high": 66565.53902891031,
+     "z": 0.26812433124166235,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 31591.67,
+     "status": "ok",
+     "median": 42321.68,
+     "low": 24497.365693106003,
+     "high": 60145.994306894,
+     "z": -2.1069553842794764,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 33032.33,
+     "status": "ok",
+     "median": 42321.68,
+     "low": 24497.365693106003,
+     "high": 60145.994306894,
+     "z": -1.8240659606986898,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 44775.99,
+     "status": "ok",
+     "median": 40310.35,
+     "low": 14055.160971089696,
+     "high": 66565.53902891031,
+     "z": 0.5953009891793072,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 45587.95,
+     "status": "ok",
+     "median": 40310.35,
+     "low": 17138.014936990363,
+     "high": 63482.68506300963,
+     "z": 0.7971402083463959,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 38738.64,
+     "status": "ok",
+     "median": 42321.68,
+     "low": 25372.910541141602,
+     "high": 59270.4494588584,
+     "z": -0.7399144834934046,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 29336.44,
+     "status": "ok",
+     "median": 42321.68,
+     "low": 25372.910541141602,
+     "high": 59270.4494588584,
+     "z": -2.681512667354508,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 31327.09,
+     "status": "ok",
+     "median": 38738.64,
+     "low": 7410.656308376583,
+     "high": 70066.62369162342,
+     "z": -0.8280272760399845,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 29150.35,
+     "status": "ok",
+     "median": 33032.33,
+     "low": 13854.249940696798,
+     "high": 52210.410059303205,
+     "z": -0.7084614287762894,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 39664.85,
+     "status": "ok",
+     "median": 33032.33,
+     "low": 12888.623550778339,
+     "high": 53176.03644922166,
+     "z": 1.1524105585294087,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 25564.51,
+     "status": "ok",
+     "median": 38738.64,
+     "low": 3197.3723943662117,
+     "high": 74279.90760563378,
+     "z": -1.2973497600488229,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 32266.86,
+     "status": "ok",
+     "median": 31327.09,
+     "low": 1424.8957820607757,
+     "high": 61229.284217939225,
+     "z": 0.10999844947922632,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 36749.22,
+     "status": "ok",
+     "median": 31327.09,
+     "low": 20031.923209785018,
+     "high": 42622.25679021498,
+     "z": 1.6801394217958956,
+     "baseline_days": 7,
+     "event": null
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "amount_p95",
+   "dimension": "transfer",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 1897237.41,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 1678570.05,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 4476246.49,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 2172823.76,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 2064434.8,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 1851702.82,
+     "status": "ok",
+     "median": 2064434.8,
+     "low": 1196842.7095626383,
+     "high": 2932026.890437362,
+     "z": -0.858193543033177,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 1762276.12,
+     "status": "ok",
+     "median": 1980836.105,
+     "low": 1147683.184318014,
+     "high": 2813989.025681986,
+     "z": -0.91815071220519,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 1868136.8,
+     "status": "ok",
+     "median": 1897237.41,
+     "low": 1029645.3195626382,
+     "high": 2764829.5004373617,
+     "z": -0.11739633881246529,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 1607314.84,
+     "status": "ok",
+     "median": 1868136.8,
+     "low": 884469.4538176428,
+     "high": 2851804.1461823573,
+     "z": -0.928034120013135,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 2096242.96,
+     "status": "ok",
+     "median": 1868136.8,
+     "low": 849540.8029651594,
+     "high": 2886732.7970348406,
+     "z": 0.7837960902301601,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 1605785.98,
+     "status": "ok",
+     "median": 1868136.8,
+     "low": 849540.8029651594,
+     "high": 2886732.7970348406,
+     "z": -0.901464243599018,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 2444341.32,
+     "status": "ok",
+     "median": 1851702.82,
+     "low": 747830.425633803,
+     "high": 2955575.214366197,
+     "z": 1.8790530142670596,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 10000000.0,
+     "status": "anomaly",
+     "median": 1851702.82,
+     "low": 583566.5264492219,
+     "high": 3119839.1135507785,
+     "z": 22.488939300165253,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 7944228.48,
+     "status": "anomaly",
+     "median": 1868136.8,
+     "low": 514724.10911786533,
+     "high": 3221549.490882135,
+     "z": 15.713108812463494,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 3570496.54,
+     "status": "ok",
+     "median": 2096242.96,
+     "low": -440819.1897405479,
+     "high": 4633305.109740548,
+     "z": 2.0338041504137667,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 3422411.97,
+     "status": "ok",
+     "median": 2444341.32,
+     "low": -1906946.5821497398,
+     "high": 6795629.222149739,
+     "z": 0.786720472646445,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 2582292.83,
+     "status": "ok",
+     "median": 3422411.97,
+     "low": -3459117.3628391414,
+     "high": 10303941.302839141,
+     "z": -0.42729120923282615,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 2970307.4,
+     "status": "ok",
+     "median": 3422411.97,
+     "low": -1652824.9091697573,
+     "high": 8497648.849169757,
+     "z": -0.3117817025436762,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 2805253.59,
+     "status": "ok",
+     "median": 3422411.97,
+     "low": -936990.5355596743,
+     "high": 7781814.475559674,
+     "z": -0.4954932074396022,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 2943026.88,
+     "status": "ok",
+     "median": 3422411.97,
+     "low": 219959.2939436608,
+     "high": 6624864.646056339,
+     "z": -0.5239258732985203,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 3331805.15,
+     "status": "ok",
+     "median": 2970307.4,
+     "low": 956888.5786508531,
+     "high": 4983726.221349146,
+     "z": 0.6284048363828196,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 3265775.97,
+     "status": "ok",
+     "median": 2970307.4,
+     "low": 1094485.1242401777,
+     "high": 4846129.675759822,
+     "z": 0.5512995598589485,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 2266264.23,
+     "status": "ok",
+     "median": 2970307.4,
+     "low": 1437112.4481838383,
+     "high": 4503502.351816162,
+     "z": -1.6072001098627833,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 1781722.26,
+     "status": "ok",
+     "median": 2943026.88,
+     "low": 1268272.5212157136,
+     "high": 4617781.238784286,
+     "z": -2.4269625862926496,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 1942292.19,
+     "status": "ok",
+     "median": 2943026.88,
+     "low": 1268272.5212157136,
+     "high": 4617781.238784286,
+     "z": -2.0913941179663724,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 2046956.0,
+     "status": "ok",
+     "median": 2805253.59,
+     "low": 72962.32239436591,
+     "high": 5537544.857605634,
+     "z": -0.9713611416420451,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 2564100.35,
+     "status": "ok",
+     "median": 2266264.23,
+     "low": -248038.06058561895,
+     "high": 4780566.520585619,
+     "z": 0.4145986836599523,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 4297472.63,
+     "status": "anomaly",
+     "median": 2266264.23,
+     "low": 585163.948309859,
+     "high": 3947364.5116901407,
+     "z": 4.228914525463369,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 2108685.5,
+     "status": "ok",
+     "median": 2266264.23,
+     "low": 585163.948309859,
+     "high": 3947364.5116901407,
+     "z": -0.32807415536538265,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 1604332.81,
+     "status": "ok",
+     "median": 2108685.5,
+     "low": 1245265.8039288358,
+     "high": 2972105.196071164,
+     "z": -2.0444685510793663,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 10000000.0,
+     "status": "expected",
+     "median": 2046956.0,
+     "low": 670650.4551519644,
+     "high": 3423261.5448480356,
+     "z": 20.224908708824152,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "fraud_share",
+   "dimension": "cash_out",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 0.0006898339995205409,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 0.0009477233376871905,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 0.6458333333333334,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 0.0209532949456174,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 0.07122668174109667,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 0.0007143036166319958,
+     "status": "ok",
+     "median": 0.0209532949456174,
+     "low": -0.08419438972649382,
+     "high": 0.12610097961772862,
+     "z": -0.6736854917190316,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 0.0008986507024012475,
+     "status": "ok",
+     "median": 0.010950509141652296,
+     "low": -0.04222894403479855,
+     "high": 0.06412996231810314,
+     "z": -0.6615619837354382,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 0.0008784699563274936,
+     "status": "ok",
+     "median": 0.0009477233376871905,
+     "low": -0.0003904718937187008,
+     "high": 0.0022859185690930818,
+     "z": -0.18112965064468994,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 0.0008668915166537988,
+     "status": "ok",
+     "median": 0.0009477233376871905,
+     "low": -0.00026349834310329375,
+     "high": 0.002158945018477675,
+     "z": -0.23357522252428106,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 0.0010207529130994227,
+     "status": "ok",
+     "median": 0.0008986507024012475,
+     "low": -5.793165518567763e-05,
+     "high": 0.0018552330599881726,
+     "z": 0.44675477657947393,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 0.0008850095594544017,
+     "status": "ok",
+     "median": 0.0008986507024012475,
+     "low": 0.00026505880107639476,
+     "high": 0.0015322426037261002,
+     "z": -0.07535449903025365,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 0.0012262970766394523,
+     "status": "anomaly",
+     "median": 0.0008850095594544017,
+     "low": 0.0007080076475635213,
+     "high": 0.001062011471345282,
+     "z": 12.705479994431636,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 0.0007966606094124463,
+     "status": "ok",
+     "median": 0.0008850095594544017,
+     "low": 0.0007080076475635213,
+     "high": 0.001062011471345282,
+     "z": -3.28906203937855,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 0.0008872794425288185,
+     "status": "ok",
+     "median": 0.0008850095594544017,
+     "low": 0.0007080076475635213,
+     "high": 0.001062011471345282,
+     "z": 0.08450339534705109,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 0.0008917424647761727,
+     "status": "ok",
+     "median": 0.0008850095594544017,
+     "low": 0.0007080076475635213,
+     "high": 0.001062011471345282,
+     "z": 0.2506531577121227,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 0.0009575341216524303,
+     "status": "ok",
+     "median": 0.0008872794425288185,
+     "low": 0.0007098235540230548,
+     "high": 0.0010647353310345824,
+     "z": 2.3242570803603275,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 0.0010515108897096515,
+     "status": "ok",
+     "median": 0.0008917424647761727,
+     "low": 0.0005503476551884755,
+     "high": 0.0012331372743638698,
+     "z": 1.6379554450242215,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 0.02160941783583293,
+     "status": "expected",
+     "median": 0.0008917424647761727,
+     "low": 0.0005503476551884755,
+     "high": 0.0012331372743638698,
+     "z": 212.39884662063633,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 0.039628482972136225,
+     "status": "expected",
+     "median": 0.0009575341216524303,
+     "low": 0.0004698859553065828,
+     "high": 0.0014451822879982777,
+     "z": 277.5532244710671,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 0.019059925698594736,
+     "status": "expected",
+     "median": 0.0009575341216524303,
+     "low": 0.0004698859553065828,
+     "high": 0.0014451822879982777,
+     "z": 129.92639958859877,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 0.017972776529668298,
+     "status": "expected",
+     "median": 0.0010515108897096515,
+     "low": 0.00019930916230725656,
+     "high": 0.0019037126171120465,
+     "z": 69.4957870132203,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 0.007650011953143677,
+     "status": "ok",
+     "median": 0.017972776529668298,
+     "low": -0.06983216007500964,
+     "high": 0.10577771313434622,
+     "z": -0.4114765913504608,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 0.006694768162658071,
+     "status": "ok",
+     "median": 0.017972776529668298,
+     "low": -0.035592347292179256,
+     "high": 0.07153790035151586,
+     "z": -0.7369166067051257,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 0.013113525665043087,
+     "status": "ok",
+     "median": 0.017972776529668298,
+     "low": -0.035592347292179256,
+     "high": 0.07153790035151586,
+     "z": -0.31750842362939624,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 0.006297890206780728,
+     "status": "ok",
+     "median": 0.017972776529668298,
+     "low": -0.007242016689291281,
+     "high": 0.04318756974862788,
+     "z": -1.620560667512488,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 0.0322733744660655,
+     "status": "ok",
+     "median": 0.013113525665043087,
+     "low": -0.01774251602128867,
+     "high": 0.04396956735137485,
+     "z": 2.1733011474794464,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 0.04940014114326041,
+     "status": "anomaly",
+     "median": 0.013113525665043087,
+     "low": -0.01774251602128867,
+     "high": 0.04396956735137485,
+     "z": 4.115989842923338,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 0.02932135256561835,
+     "status": "ok",
+     "median": 0.013113525665043087,
+     "low": -0.020193592583063,
+     "high": 0.04642064391314918,
+     "z": 1.7031612801038123,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 0.007236292791539103,
+     "status": "ok",
+     "median": 0.013113525665043087,
+     "low": -0.02225300376997286,
+     "high": 0.04848005510005904,
+     "z": -0.5816322773502774,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 0.033110946380034596,
+     "status": "ok",
+     "median": 0.013113525665043087,
+     "low": -0.02225300376997286,
+     "high": 0.04848005510005904,
+     "z": 1.979017269168999,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 1.0,
+     "status": "expected",
+     "median": 0.02932135256561835,
+     "low": -0.05478152979466841,
+     "high": 0.11342423492590512,
+     "z": 40.39546767810387,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "fraud_share",
+   "dimension": "transfer",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 0.0027845606820031702,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 0.003998014058376231,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 0.8201058201058201,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 0.05210819411296738,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 0.1390728476821192,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 0.0031392851241945257,
+     "status": "ok",
+     "median": 0.05210819411296738,
+     "low": -0.2038335657215393,
+     "high": 0.30804995394747403,
+     "z": -0.6696491481949934,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 0.003916937876213243,
+     "status": "ok",
+     "median": 0.028053104085671805,
+     "low": -0.10214576046437321,
+     "high": 0.1582519686357168,
+     "z": -0.648827330599603,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 0.003663003663003663,
+     "status": "ok",
+     "median": 0.003998014058376231,
+     "low": -0.0022986305929294966,
+     "high": 0.010294658709681959,
+     "z": -0.1862160640684783,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 0.003735843506398,
+     "status": "ok",
+     "median": 0.003998014058376231,
+     "low": -0.0004579552072071181,
+     "high": 0.00845398332395958,
+     "z": -0.20592532785427167,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 0.004279120946297032,
+     "status": "ok",
+     "median": 0.003916937876213243,
+     "low": -0.00011832473618929393,
+     "high": 0.00795220048861578,
+     "z": 0.31414082974355073,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 0.0038429946022060547,
+     "status": "ok",
+     "median": 0.003916937876213243,
+     "low": 0.0020375594547258286,
+     "high": 0.005796316297700658,
+     "z": -0.1377058798090986,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 0.005352780571921253,
+     "status": "anomaly",
+     "median": 0.0038429946022060547,
+     "low": 0.002909016415092087,
+     "high": 0.0047769727893200225,
+     "z": 5.657788336932959,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 0.003290457672749028,
+     "status": "ok",
+     "median": 0.0038429946022060547,
+     "low": 0.002909016415092087,
+     "high": 0.0047769727893200225,
+     "z": -2.0705828891736355,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 0.003628532656793911,
+     "status": "ok",
+     "median": 0.0038429946022060547,
+     "low": 0.002909016415092087,
+     "high": 0.0047769727893200225,
+     "z": -0.8036770229741022,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 0.0037008526764566556,
+     "status": "ok",
+     "median": 0.003735843506398,
+     "low": 0.0029886748051184,
+     "high": 0.0044830122076776,
+     "z": -0.21993409690176843,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 0.003992901508429458,
+     "status": "ok",
+     "median": 0.003735843506398,
+     "low": 0.0029886748051184,
+     "high": 0.0044830122076776,
+     "z": 1.6157324539867635,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 0.004492110730529507,
+     "status": "ok",
+     "median": 0.0038429946022060547,
+     "low": 0.002730145367302419,
+     "high": 0.00495584383710969,
+     "z": 2.041522227697639,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 0.07177289769683985,
+     "status": "expected",
+     "median": 0.0038429946022060547,
+     "low": 0.002730145367302419,
+     "high": 0.00495584383710969,
+     "z": 213.6449874558309,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 0.12890231621349446,
+     "status": "expected",
+     "median": 0.003992901508429458,
+     "low": 0.0014024904226619698,
+     "high": 0.006583312594196947,
+     "z": 168.7697191653265,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 0.06048180420297283,
+     "status": "expected",
+     "median": 0.003992901508429458,
+     "low": 0.0014024904226619698,
+     "high": 0.006583312594196947,
+     "z": 76.32424078061872,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 0.05352223534041716,
+     "status": "expected",
+     "median": 0.004492110730529507,
+     "low": 1.0979139610921285e-05,
+     "high": 0.008973242321448093,
+     "z": 38.29511199411787,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 0.026683343756514488,
+     "status": "ok",
+     "median": 0.05352223534041716,
+     "low": -0.20089649873609405,
+     "high": 0.3079409694169284,
+     "z": -0.3692185675108737,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 0.023185916702447403,
+     "status": "ok",
+     "median": 0.05352223534041716,
+     "low": -0.08574554900896661,
+     "high": 0.19279001968980095,
+     "z": -0.7623953790097326,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 0.045190445448676564,
+     "status": "ok",
+     "median": 0.05352223534041716,
+     "low": -0.08574554900896661,
+     "high": 0.19279001968980095,
+     "z": -0.20938987977244372,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 0.022434099831744252,
+     "status": "ok",
+     "median": 0.05352223534041716,
+     "low": -0.04118097925925581,
+     "high": 0.14822544994009013,
+     "z": -1.1489417200916316,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 0.10932475884244373,
+     "status": "ok",
+     "median": 0.045190445448676564,
+     "low": -0.05084344027788722,
+     "high": 0.14122433117524036,
+     "z": 2.3374051271580982,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 0.15765765765765766,
+     "status": "anomaly",
+     "median": 0.045190445448676564,
+     "low": -0.05084344027788722,
+     "high": 0.14122433117524036,
+     "z": 4.098920289992504,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 0.08294314381270904,
+     "status": "ok",
+     "median": 0.045190445448676564,
+     "low": -0.06899169037312042,
+     "high": 0.15937258127047355,
+     "z": 1.157225193968474,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 0.024308152580403888,
+     "status": "ok",
+     "median": 0.045190445448676564,
+     "low": -0.0728928898504533,
+     "high": 0.1632737807478064,
+     "z": -0.6189529187485013,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 0.13214990138067062,
+     "status": "ok",
+     "median": 0.045190445448676564,
+     "low": -0.0728928898504533,
+     "high": 0.1632737807478064,
+     "z": 2.5774855951602,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 1.0,
+     "status": "expected",
+     "median": 0.08294314381270904,
+     "low": -0.17239214378976028,
+     "high": 0.3382784314151783,
+     "z": 12.570526490066223,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "null_share",
+   "dimension": "receiver_balance_before_amount",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 0.33900619062959836,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 0.32982088489976674,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 0.4485981308411215,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 0.5058781869688386,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 0.5587904791092042,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 0.32303488622577975,
+     "status": "ok",
+     "median": 0.4485981308411215,
+     "low": -0.12007761525277177,
+     "high": 1.0172738769350147,
+     "z": -0.7727977835740785,
+     "baseline_days": 5,
+     "event": null
+    },
+    {
+     "date": "2024-01-07",
+     "value": 0.32871038534605534,
+     "status": "ok",
+     "median": 0.3938021607353599,
+     "low": 0.044195099054035514,
+     "high": 0.7434092224166843,
+     "z": -0.6516493481765844,
+     "baseline_days": 6,
+     "event": null
+    },
+    {
+     "date": "2024-01-08",
+     "value": 0.3331042596583466,
+     "status": "ok",
+     "median": 0.33900619062959836,
+     "low": 0.25613063034291916,
+     "high": 0.42188175091627755,
+     "z": -0.24925030163206413,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 0.34643316049282274,
+     "status": "ok",
+     "median": 0.3331042596583466,
+     "low": 0.2664834077266773,
+     "high": 0.39972511159001595,
+     "z": 0.8928404208127925,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 0.3382025474303019,
+     "status": "ok",
+     "median": 0.34643316049282274,
+     "low": 0.22501883886991617,
+     "high": 0.46784748211572935,
+     "z": -0.23726316083446272,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 0.3412442953244994,
+     "status": "ok",
+     "median": 0.3382025474303019,
+     "low": 0.27056203794424155,
+     "high": 0.4058430569163623,
+     "z": 0.21614242744981996,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 0.35390650016010244,
+     "status": "ok",
+     "median": 0.3382025474303019,
+     "low": 0.27056203794424155,
+     "high": 0.4058430569163623,
+     "z": 1.286941329374838,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 0.3300644215939503,
+     "status": "ok",
+     "median": 0.3382025474303019,
+     "low": 0.27056203794424155,
+     "high": 0.4058430569163623,
+     "z": -0.6669206576621647,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 0.33973650081935075,
+     "status": "ok",
+     "median": 0.3382025474303019,
+     "low": 0.27056203794424155,
+     "high": 0.4058430569163623,
+     "z": 0.12713634339393193,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 0.33498636868835385,
+     "status": "ok",
+     "median": 0.33973650081935075,
+     "low": 0.2717892006554806,
+     "high": 0.4076838009832209,
+     "z": -0.483089206887694,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 0.3393158570158203,
+     "status": "ok",
+     "median": 0.33973650081935075,
+     "low": 0.2717892006554806,
+     "high": 0.4076838009832209,
+     "z": -0.059729758595526185,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 0.3326099312768046,
+     "status": "ok",
+     "median": 0.3393158570158203,
+     "low": 0.27145268561265623,
+     "high": 0.40717902841898435,
+     "z": -2.3454973335725793,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 0.3657317015095957,
+     "status": "ok",
+     "median": 0.3393158570158203,
+     "low": 0.27145268561265623,
+     "high": 0.40717902841898435,
+     "z": 4.1153794082355475,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 0.3807079646017699,
+     "status": "ok",
+     "median": 0.3393158570158203,
+     "low": 0.27145268561265623,
+     "high": 0.40717902841898435,
+     "z": 4.163329218557833,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 0.3589496628985654,
+     "status": "ok",
+     "median": 0.3393158570158203,
+     "low": 0.27145268561265623,
+     "high": 0.40717902841898435,
+     "z": 1.9748208649049879,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 0.3553450168747205,
+     "status": "ok",
+     "median": 0.33973650081935075,
+     "low": 0.2717892006554806,
+     "high": 0.4076838009832209,
+     "z": 1.4772807613107928,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 0.3626887736961282,
+     "status": "ok",
+     "median": 0.3553450168747205,
+     "low": 0.27216924295900413,
+     "high": 0.4385207907904368,
+     "z": 0.30902205852598935,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 0.35797459421312633,
+     "status": "ok",
+     "median": 0.3589496628985654,
+     "low": 0.28715973031885234,
+     "high": 0.43073959547827845,
+     "z": -0.09697435624429925,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 0.34614326332202144,
+     "status": "ok",
+     "median": 0.3589496628985654,
+     "low": 0.28715973031885234,
+     "high": 0.43073959547827845,
+     "z": -2.3101525956409836,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 0.34347397714898104,
+     "status": "ok",
+     "median": 0.3589496628985654,
+     "low": 0.28715973031885234,
+     "high": 0.43073959547827845,
+     "z": -2.7916664156886024,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 0.3621173928700036,
+     "status": "ok",
+     "median": 0.35797459421312633,
+     "low": 0.2863796753705011,
+     "high": 0.4295695130557516,
+     "z": 0.592747413232639,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 0.3186057356027046,
+     "status": "ok",
+     "median": 0.35797459421312633,
+     "low": 0.2863796753705011,
+     "high": 0.4295695130557516,
+     "z": -6.409747934200913,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 0.35911602209944754,
+     "status": "ok",
+     "median": 0.3553450168747205,
+     "low": 0.2842760134997764,
+     "high": 0.42641402024966457,
+     "z": 0.3463544730489649,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 0.33581708872290034,
+     "status": "ok",
+     "median": 0.35797459421312633,
+     "low": 0.2863796753705011,
+     "high": 0.4295695130557516,
+     "z": -3.1702733226526965,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 0.32621600070878,
+     "status": "ok",
+     "median": 0.34614326332202144,
+     "low": 0.27691461065761713,
+     "high": 0.41537191598642575,
+     "z": -1.1360462112285798,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 0.0,
+     "status": "expected",
+     "median": 0.34347397714898104,
+     "low": 0.2623069536847368,
+     "high": 0.4246410006132253,
+     "z": -14.810927747658617,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  },
+  {
+   "source": "transactions",
+   "metric": "row_count",
+   "dimension": "all",
+   "days": [
+    {
+     "date": "2024-01-01",
+     "value": 574255.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-02",
+     "value": 455238.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-03",
+     "value": 1070.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-04",
+     "value": 28240.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-05",
+     "value": 9789.0,
+     "status": "insufficient_baseline"
+    },
+    {
+     "date": "2024-01-06",
+     "value": 441005.0,
+     "status": "expected",
+     "median": 28240.0,
+     "low": -112745.91549295775,
+     "high": 169225.91549295775,
+     "z": 10.246963286713287,
+     "baseline_days": 5,
+     "event": "E1-volume-lull"
+    },
+    {
+     "date": "2024-01-07",
+     "value": 420583.0,
+     "status": "ok",
+     "median": 234622.5,
+     "low": -921101.3695329875,
+     "high": 1390346.3695329875,
+     "z": 0.5631637168340259,
+     "baseline_days": 6,
+     "event": "E1-volume-lull"
+    },
+    {
+     "date": "2024-01-08",
+     "value": 449637.0,
+     "status": "ok",
+     "median": 420583.0,
+     "low": -376825.45070422534,
+     "high": 1217991.4507042253,
+     "z": 0.12752435707220572,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-09",
+     "value": 417919.0,
+     "status": "ok",
+     "median": 420583.0,
+     "low": 240757.20311341734,
+     "high": 600408.7968865826,
+     "z": -0.051850180349155964,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-10",
+     "value": 392945.0,
+     "status": "ok",
+     "median": 417919.0,
+     "low": 253333.38102297997,
+     "high": 582504.61897702,
+     "z": -0.5310852828047166,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-11",
+     "value": 417859.0,
+     "status": "ok",
+     "median": 417919.0,
+     "low": 288328.19199406967,
+     "high": 547509.8080059303,
+     "z": -0.0016204853047169056,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-12",
+     "value": 349776.0,
+     "status": "ok",
+     "median": 417919.0,
+     "low": 298125.07857672346,
+     "high": 537712.9214232765,
+     "z": -1.9909232218660657,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-13",
+     "value": 428583.0,
+     "status": "ok",
+     "median": 417919.0,
+     "low": 298125.07857672346,
+     "high": 537712.9214232765,
+     "z": 0.3115683964307372,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-14",
+     "value": 397876.0,
+     "status": "ok",
+     "median": 417919.0,
+     "low": 334335.2,
+     "high": 501502.8,
+     "z": -1.2677235090022505,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-15",
+     "value": 401282.0,
+     "status": "ok",
+     "median": 417859.0,
+     "low": 314166.6352853966,
+     "high": 521551.3647146034,
+     "z": -0.5595349296902367,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-16",
+     "value": 375594.0,
+     "status": "ok",
+     "median": 401282.0,
+     "low": 315263.4677538918,
+     "high": 487300.5322461082,
+     "z": -1.0452166254448936,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-17",
+     "value": 425766.0,
+     "status": "ok",
+     "median": 397876.0,
+     "low": 294183.6352853966,
+     "high": 501568.3647146034,
+     "z": 0.941390431867087,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-18",
+     "value": 20999.0,
+     "status": "expected",
+     "median": 401282.0,
+     "low": 274233.8161601186,
+     "high": 528330.1838398814,
+     "z": -10.476265459075314,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-19",
+     "value": 11300.0,
+     "status": "expected",
+     "median": 397876.0,
+     "low": 253153.98369162343,
+     "high": 542598.0163083766,
+     "z": -9.349068196486195,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-20",
+     "value": 19727.0,
+     "status": "expected",
+     "median": 397876.0,
+     "low": 253153.98369162343,
+     "high": 542598.0163083766,
+     "z": -9.145267138759412,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-21",
+     "value": 24593.0,
+     "status": "expected",
+     "median": 375594.0,
+     "low": 115250.04151223128,
+     "high": 635937.9584877687,
+     "z": -4.718770918041936,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-22",
+     "value": 53437.0,
+     "status": "ok",
+     "median": 24593.0,
+     "low": -44384.76130467013,
+     "high": 93570.76130467013,
+     "z": 1.4635731588053862,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-23",
+     "value": 51012.0,
+     "status": "ok",
+     "median": 24593.0,
+     "low": -44384.76130467013,
+     "high": 93570.76130467013,
+     "z": 1.3405262544196193,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-24",
+     "value": 32709.0,
+     "status": "ok",
+     "median": 24593.0,
+     "low": -44384.76130467013,
+     "high": 93570.76130467013,
+     "z": 0.4118138870081998,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-25",
+     "value": 57853.0,
+     "status": "ok",
+     "median": 24593.0,
+     "low": -17521.15863602669,
+     "high": 66707.1586360267,
+     "z": 2.7641535239034005,
+     "baseline_days": 7,
+     "event": "E3-volume-collapse"
+    },
+    {
+     "date": "2024-01-26",
+     "value": 13885.0,
+     "status": "ok",
+     "median": 32709.0,
+     "low": -62265.796145292814,
+     "high": 127683.79614529281,
+     "z": -0.6936998306288586,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-27",
+     "value": 8578.0,
+     "status": "ok",
+     "median": 32709.0,
+     "low": -62265.796145292814,
+     "high": 127683.79614529281,
+     "z": -0.8892727694913403,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-28",
+     "value": 14661.0,
+     "status": "ok",
+     "median": 32709.0,
+     "low": -64969.280207561154,
+     "high": 130387.28020756115,
+     "z": -0.646694432639184,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-29",
+     "value": 54890.0,
+     "status": "ok",
+     "median": 32709.0,
+     "low": -64969.280207561154,
+     "high": 130387.28020756115,
+     "z": 0.7947877443688908,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-30",
+     "value": 11287.0,
+     "status": "ok",
+     "median": 32709.0,
+     "low": -64969.280207561154,
+     "high": 130387.28020756115,
+     "z": -0.7675913195920102,
+     "baseline_days": 7,
+     "event": null
+    },
+    {
+     "date": "2024-01-31",
+     "value": 272.0,
+     "status": "ok",
+     "median": 14661.0,
+     "low": -16903.8628613788,
+     "high": 46225.8628613788,
+     "z": -1.595492437941805,
+     "baseline_days": 7,
+     "event": "E4-final-day"
+    }
+   ]
+  }
+ ]
+}
