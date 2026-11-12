@@ -171,6 +171,7 @@ def dbt_build(target: str, warehouse: Path, full_refresh: bool = False) -> dict:
             + (f" ({(r.get('message') or '').splitlines()[0][:200]})" if r.get("message") else "")
             for r in failed
         ]
+        triage_failure(warehouse)
         raise DataQualityGateError(
             f"dbt build: {len(failed)} of {len(results)} nodes failed the gate:\n"
             + "\n".join(lines)
@@ -223,6 +224,39 @@ def ingestion_common():
     import common
 
     return common
+
+
+def triage_failure(warehouse: Path) -> None:
+    """Ask the triage agent why the build failed; log and publish its diagnosis.
+
+    Best effort and read-only: with no API key, TRIAGE=off, or any error, it logs why and returns,
+    so the gate's own failure is always what the run reports. See triage/README.md.
+    """
+    logger = get_run_logger()
+    if os.environ.get("TRIAGE", "on").lower() == "off":
+        logger.info("Triage skipped: TRIAGE=off.")
+        return
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        logger.info("Triage skipped: ANTHROPIC_API_KEY is not set. Run `make triage` later.")
+        return
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    try:
+        from triage.context import build_context
+        from triage.diagnose import diagnose, to_markdown
+
+        context = build_context(DBT_DIR / "target", warehouse)
+        if context is None:
+            return
+        diagnosis, meta = diagnose(context.render())
+        report = to_markdown(diagnosis, meta)
+    except Exception as error:  # noqa: BLE001 - triage must never mask the gate failure
+        logger.warning(f"Triage unavailable: {error}")
+        return
+    (DBT_DIR / "target" / "triage.md").write_text(report + "\n")
+    create_markdown_artifact(key="triage", markdown=report)
+    logger.warning(f"Triage ({diagnosis.category}, {diagnosis.confidence}): {diagnosis.summary}")
+    logger.info("Full diagnosis: risk_warehouse/target/triage.md and the 'triage' artifact.")
 
 
 @task(name="monitoring-check")

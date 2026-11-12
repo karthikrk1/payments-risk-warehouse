@@ -90,6 +90,7 @@ flowchart LR
     build["dbt-build<br/>(no retries)"]
     gate{{"Quality gate<br/>run_results.json:<br/>any error/fail?"}}
     stop["Stop the flow<br/>name the failing tests"]
+    triage["Triage agent (read-only)<br/>Claude diagnosis → triage artifact"]
     counts["warehouse-counts<br/>per-batch table artifact"]
     mon["monitoring-check<br/>this batch's anomalies (warnings)<br/>+ ops.run_log"]
     next{"More batches?"}
@@ -97,7 +98,7 @@ flowchart LR
     analyses["run-analyses<br/>results artifact"]
 
     gen --> deps --> load --> build --> gate
-    gate -- yes --> stop
+    gate -- yes --> triage --> stop
     gate -- no --> counts --> mon --> next
     next -- "yes: H += batch" --> load
     next -- no --> compare --> analyses
@@ -110,6 +111,11 @@ flowchart LR
   simulated time at a time (a day locally, a week in CI), with `dbt build` and the gate after each, until
   the last late dispute has arrived. The incremental `fct_transactions` grows batch by batch. At the end
   every `core` and `ml` table must equal a one-shot full build.
+
+When the gate fails, the flow first asks the triage agent ([`triage/`](../triage/README.md)) for a
+diagnosis: context gathered from dbt's artifacts and git, one Claude call, a structured answer
+logged as a `triage` artifact. It is best effort: with no API key or any error it is skipped, and the
+run always fails with the gate's own error.
 
 `load_raw.py --as-of-hours H` decides what existed at the cutoff: transactions by `step`, and each
 entity by the time it became known (`signup_ts`, `first_seen_ts`, `login_ts`, `filed_ts`). Each run
@@ -182,4 +188,6 @@ flowchart LR
 | `make sample` | Rebuild the committed CI sample from the full CSV |
 | `make monitoring-export` | Export full-data monitoring results for the chart page |
 | `make monitoring-page` | Build the chart page locally (`site/monitoring/index.html`) |
+| `make triage` | Diagnose the last failed build with Claude (read-only) |
+| `make triage-eval` | Grade the triage agent on 9 planted breakages (billed) |
 | `make clean` | Delete generated data, warehouse files and dbt output |
