@@ -11,7 +11,7 @@ extension rather than built (item 4).
 | # | Item | Status | Cost | Size |
 |---|---|---|---|---|
 | 1 | Orchestration with Prefect, with replay | Done (#17) | None | 1 PR |
-| 2 | Data monitoring: custom, in dbt (Elementary evaluated, not adopted) | In review (`feat/monitoring`); chart page next | None | 2 PRs |
+| 2 | Data monitoring: custom, in dbt (Elementary evaluated, not adopted) | Done (#18); chart page in review (`feat/monitoring-page`) | None | 2 PRs |
 | 3 | AI triage agent (Claude API) | Planned | Cents per run (API key) | 1–2 PRs |
 | 4 | Snowflake + Terraform | Out of scope: documented as an extension | — | docs only |
 | 5 | Wrap-up: Snowflake extension note, karthikrk.com case study (one update for all of Phase 2) | After 1–3 | None | 1–2 PRs |
@@ -106,8 +106,16 @@ Jan 13 (only 12 fraud) and 727 more on Jan 14 (none fraud), against ~10 a day, a
 Monitoring also showed that PaySim injects fraud at a near-constant ~262 a day whatever the legitimate
 volume, so the fraud *share* explodes when volume drops (Jan 31: 272 transactions, all fraud).
 
-**Next PR:** a static chart page on GitHub Pages (daily metrics with their bands, flagged days marked),
-next to the dbt docs.
+**Chart page (as built):** <https://karthikrk1.github.io/payments-risk-warehouse/monitoring/>, one
+self-contained HTML file (no external scripts): headline counts, the unexplained anomalies, the known
+events, and a small line chart per monitor (18; three always-zero fraud shares are listed, not drawn) with
+the not-flagged band shaded, unexplained anomalies as red diamonds and explained days as grey rings,
+hover/keyboard tooltips and a table view per chart. Built from `docs/monitoring/monitoring.json`, a
+committed export of the full data (`make monitoring-export`), because charts of the skewed CI sample
+would mislead. The export recomputes each band with the SQL rule and refuses to write if any band
+disagrees with that day's status; CI runs the same export on the sample. Colours validated with the
+data-viz palette checks in light and dark mode; rendered and inspected in a headless browser (light,
+dark, 390 px phone width) before shipping.
 
 ## 3. AI triage agent (Claude API)
 

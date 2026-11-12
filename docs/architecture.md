@@ -145,8 +145,8 @@ flowchart LR
     lint["CI: lint<br/>ruff check + format"]
     cibuild["CI: dbt<br/>make ci-build, then make ci-replay<br/>(full build + weekly replay on data/sample/,<br/>replay must equal the build)"]
     merge["Merge to main<br/>(protected: PR + both checks)"]
-    docs["Docs workflow<br/>make ci-build → dbt docs generate --static"]
-    pages["GitHub Pages<br/>karthikrk1.github.io/payments-risk-warehouse"]
+    docs["Docs workflow<br/>make ci-build → dbt docs generate --static<br/>+ monitoring page from the committed export"]
+    pages["GitHub Pages<br/>/ (dbt docs) and /monitoring/ (charts)"]
     dependabot["Dependabot (weekly)<br/>Actions + direct Python deps"]
 
     pr --> lint
@@ -180,4 +180,6 @@ flowchart LR
 | `make docs` | Generate and serve the dbt docs locally |
 | `make lint` / `make format` | Ruff |
 | `make sample` | Rebuild the committed CI sample from the full CSV |
+| `make monitoring-export` | Export full-data monitoring results for the chart page |
+| `make monitoring-page` | Build the chart page locally (`site/monitoring/index.html`) |
 | `make clean` | Delete generated data, warehouse files and dbt output |

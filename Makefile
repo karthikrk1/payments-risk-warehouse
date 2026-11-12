@@ -15,7 +15,7 @@ FLOW := PREFECT_SERVER_ANALYTICS_ENABLED=false $(PYTHON) flows/pipeline.py
 
 .DEFAULT_GOAL := help
 .PHONY: help setup data entities load ingest deps build docs lint format clean sample ci-build \
-	results flow replay ci-replay
+	results flow replay ci-replay monitoring-export monitoring-page
 
 help: ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -49,6 +49,13 @@ docs: deps ## Generate and serve the dbt docs site (lineage, data dictionary)
 results: ## Run the analyses on the full warehouse and print Markdown tables (README Results)
 	$(PYTHON) scripts/run_analyses.py
 
+monitoring-export: ## Export full-data monitoring results to docs/monitoring/monitoring.json (after build)
+	$(PYTHON) scripts/export_monitoring.py
+
+monitoring-page: ## Build the monitoring chart page locally from the committed export
+	$(PYTHON) scripts/build_monitoring_page.py
+	@echo "Open site/monitoring/index.html in a browser"
+
 sample: ## Rebuild the committed CI sample from the full PaySim CSV
 	$(PYTHON) ingestion/make_sample.py
 
@@ -60,6 +67,10 @@ ci-build: ## Full pipeline on the committed sample into warehouse/ci.duckdb (sam
 	$(DBT) build --target ci
 	@# Check the analyses still compile and run; their output on the skewed sample is discarded.
 	$(PYTHON) scripts/run_analyses.py --warehouse $(CI_WAREHOUSE) --target ci > /dev/null
+	@# Re-check that the chart bands agree with every monitoring status, and that the page builds.
+	$(PYTHON) scripts/export_monitoring.py --warehouse $(CI_WAREHOUSE) --out data/raw/ci_monitoring.json
+	$(PYTHON) scripts/build_monitoring_page.py --data data/raw/ci_monitoring.json \
+		--out site/ci-monitoring/index.html
 
 flow: ## Full pipeline on the full data as a Prefect flow (generate, load, dbt build, analyses)
 	$(FLOW) --mode full --dataset full
@@ -80,4 +91,4 @@ format: ## Fix lint issues and format Python code
 
 clean: ## Delete generated data, the warehouse file and dbt build output
 	rm -rf data/raw/generated $(CI_GENERATED) warehouse/*.duckdb warehouse/*.duckdb.wal \
-		risk_warehouse/target risk_warehouse/logs
+		risk_warehouse/target risk_warehouse/logs site data/raw/ci_monitoring.json

@@ -8,11 +8,13 @@ account, device, login and dispute data into a tested **dimensional warehouse** 
 monitoring built in.
 
 > **Status:** Phase 1 complete: warehouse, point-in-time features, tests, CI and hosted docs.
-> Phase 2 under way: Prefect orchestration with day-by-day replay and custom data monitoring are done;
-> a monitoring chart page and an AI triage agent are next. See the [Roadmap](#roadmap).
+> Phase 2 under way: Prefect orchestration with day-by-day replay, custom data monitoring and its chart
+> page are done; an AI triage agent is next. See the [Roadmap](#roadmap).
 
 **Live docs and lineage graph:** <https://karthikrk1.github.io/payments-risk-warehouse/> (built from
 the CI sample, so row counts there are the sample's).
+**Monitoring charts:** <https://karthikrk1.github.io/payments-risk-warehouse/monitoring/> (the full
+dataset, from a committed export).
 
 ---
 
@@ -267,6 +269,12 @@ volume lull, the dispute ramp-up in the first two weeks, the Jan 18–25 volume 
 - **PaySim injects fraud at a near-constant ~262 a day** whatever the legitimate volume, so the fraud
   *share* explodes when volume drops: on Jan 31, all 272 transactions are fraud.
 
+**The charts:** every monitor as a daily line with its normal range shaded and flagged days marked,
+plus the list of unexplained anomalies, at
+<https://karthikrk1.github.io/payments-risk-warehouse/monitoring/>. The page is built from a committed
+export of the full data (`make monitoring-export`; the CI sample's rates are skewed on purpose), and the
+export checks that every shaded band agrees with the status the SQL assigned that day.
+
 **Why custom instead of Elementary?** Elementary was evaluated first, in a throwaway copy on the sample.
 It works with DuckDB, but its anomaly window ends at "now": on January 2024 data it measured 14 empty days
 in November 2026 and passed without checking anything. The only override is a variable its source marks
@@ -411,7 +419,9 @@ for the built warehouse. `make replay` builds a second copy (`warehouse/replay.d
 - Dependabot opens weekly pull requests for GitHub Actions and the direct Python dependencies.
 - Every merge to `main` republishes the [dbt docs site](https://karthikrk1.github.io/payments-risk-warehouse/)
   ([docs workflow](.github/workflows/docs.yml)): the pipeline runs on the sample, then
-  `dbt docs generate --static` goes to GitHub Pages.
+  `dbt docs generate --static` goes to GitHub Pages, together with the
+  [monitoring charts](https://karthikrk1.github.io/payments-risk-warehouse/monitoring/) built from
+  `docs/monitoring/monitoring.json`.
 
 Run the same checks locally:
 
@@ -430,7 +440,7 @@ it (12% vs 0.13%) so tests have cases to work on; results always come from the f
 - [x] GitHub Actions CI running the full pipeline and `dbt build` on every pull request
 - [x] Orchestration with Prefect: quality gate, retries, timeouts, day-by-day replay
 - [x] Data monitoring: daily metrics, robust anomaly scoring, known events, contracts, run log
-- [ ] Monitoring chart page on GitHub Pages
+- [x] Monitoring chart page on GitHub Pages
 - [ ] Snowflake + Terraform: documented as an extension, not built
 - [ ] AI triage agent: classifies failed dbt tests and suggests fixes using the Claude API
 
