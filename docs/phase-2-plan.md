@@ -9,7 +9,7 @@ observability watches it, and the triage agent explains what fails.
 
 | # | Item | Status | Cost | Size |
 |---|---|---|---|---|
-| 1 | Orchestration with Prefect | Next | None | 1–2 PRs |
+| 1 | Orchestration with Prefect, with replay | In review (`feat/prefect-replay`) | None | 1 PR |
 | 2 | Data observability with Elementary | Planned | None | 1 PR |
 | 3 | AI triage agent (Claude API) | Planned | Cents per run (API key) | 1–2 PRs |
 | 4 | Snowflake + Terraform | Optional | Snowflake credits | 2+ PRs |
@@ -28,12 +28,29 @@ instead of a chain of `make` targets.
   simple SLA.
 - Runs locally with no account (`make flow`); `prefect server start` gives the UI. CI runs the flow on
   the sample.
-- **Proposed, to confirm: replay mode.** Process PaySim one simulated day at a time (31 runs) instead of
-  all at once. That exercises the incremental `fct_transactions` the way production would and gives
-  item 2 a real time series to learn from.
+- **Replay mode (confirmed).** Process PaySim one simulated day at a time instead of all at once. That
+  exercises the incremental `fct_transactions` the way production would and gives item 2 a real time
+  series to learn from.
 
 **Done when:** `make flow` runs the full pipeline with the gate and summary, CI runs it on the sample,
 and the README documents it.
+
+**As built:**
+- `ingestion/load_raw.py --as-of-hours H` loads only what existed before the cutoff: transactions with
+  `step <= H`, and accounts, devices, logins and disputes by their signup / first-seen / login / filed
+  time. Transaction IDs are assigned over the whole file first, so they match a full load.
+- Replay runs until the last *late* dispute has arrived (about 45 days, not 31): disputes keep coming for
+  up to 14 days after the last transaction.
+- **Correctness check:** at the end of a replay, every `core` and `ml` table must equal a one-shot full
+  build row for row (`scripts/compare_warehouses.py`). CI replays the sample weekly and checks this on
+  every pull request; `make replay` does it daily on the full data.
+- **Gate check:** with the velocity window deliberately broken, the flow stopped at the first batch,
+  named both failing tests with their failing row counts, and ran nothing downstream.
+- **Found by replay:** the entity generator placed 2,407 failed logins before their account existed.
+  Fixed (attempts can't precede signup) and guarded by `assert_logins_after_account_signup`; features
+  and `make results` are byte-identical after the fix.
+- Prefect's temporary server reports anonymous usage statistics by default; the `make` targets turn that
+  off (`PREFECT_SERVER_ANALYTICS_ENABLED=false`).
 
 ## 2. Data observability with Elementary
 

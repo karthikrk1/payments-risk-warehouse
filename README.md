@@ -7,8 +7,9 @@ account, device, login and dispute data into a tested **dimensional warehouse** 
 **point-in-time-correct ML feature table** for fraud detection, with data quality and lineage
 monitoring built in.
 
-> **Status:** Phase 1 complete: warehouse, point-in-time features, 154 tests, CI and hosted docs.
-> Phase 2 (orchestration, observability, Snowflake) is planned; see the [Roadmap](#roadmap).
+> **Status:** Phase 1 complete: warehouse, point-in-time features, 155 tests, CI and hosted docs.
+> Phase 2 under way: Prefect orchestration with day-by-day replay is done; observability is next. See
+> the [Roadmap](#roadmap).
 
 **Live docs and lineage graph:** <https://karthikrk1.github.io/payments-risk-warehouse/> (built from
 the CI sample, so row counts there are the sample's).
@@ -201,7 +202,39 @@ erDiagram
 4. **Portable SQL.** Models target DuckDB locally but avoid dialect-specific SQL so they port to
    Snowflake with minimal changes.
 
-_Expand each with the trade-offs you considered._
+## Orchestration and replay
+
+The pipeline runs as a [Prefect](https://www.prefect.io/) flow ([`flows/pipeline.py`](flows/pipeline.py)),
+with no server or account needed. Every `dbt build` passes through a **quality gate**: the flow reads
+dbt's own `run_results.json`, and if any model or test errors or fails, it stops and names them. Loading
+is retried; a failing test never is, because it means the data is wrong, not that something glitched.
+
+**Replay** feeds the warehouse one simulated day at a time, the way it would run in production. Each
+batch loads only what had happened by its cutoff (`load_raw.py --as-of-hours`), runs `dbt build`, and
+passes the gate, so the incremental `fct_transactions` grows day by day. On the full data:
+
+| | |
+|---|---|
+| Batches | 45 daily batches covering 1,074 simulated hours, about 10.5 minutes in total |
+| Transactions | 6,362,620, arriving over the first 31 days (574,255 on day 1) |
+| Late data | 14 batches with no new transactions but **917 disputes still arriving**: disputes are filed up to 14 days after the transaction, so replay runs until the last one is in |
+| Quality gate | all 45 batches passed (173 checks each) |
+| **Result vs a one-shot full build** | **all 8 core and ML tables identical, row for row** (`scripts/compare_warehouses.py`) |
+
+- **The gate was tested by breaking the model on purpose.** With the velocity window including the
+  current hour, the flow stopped at the first batch, named the two failing tests and their failing row
+  counts, and ran nothing downstream.
+- **Replay found a bug in the synthetic data.** The generator had placed 2,407 failed logins before
+  their account was opened, which a day-by-day load exposes immediately. Fixed, and guarded by
+  `assert_logins_after_account_signup`; the features and `make results` came out byte-identical.
+- **CI replays the sample week by week** on every pull request and fails unless the result equals the
+  sample's full build.
+
+```bash
+make flow       # full pipeline as a Prefect flow (~30 s on the full data)
+make replay     # replay the full data day by day, then compare with `make build` (~10 min)
+prefect server start   # optional: the Prefect UI with run history, per-batch tables and results
+```
 
 ## Data quality
 
@@ -210,11 +243,12 @@ _Expand each with the trade-offs you considered._
 - A leakage test on the ML feature table
 - Warn-level tests for known, rare source quirks; error-level for integrity breaks
 
-**Today:** 17 models and a seed, 154 tests; a full build on 6.36M transactions takes about 8 seconds.
+**Today:** 17 models and a seed, 155 tests; a full build on 6.36M transactions takes about 8 seconds.
 - **Staging:** keys, relationships across sources (logins → accounts and devices, disputes →
-  transactions, senders and customer receivers → accounts), accepted values, ranges, and four singular
+  transactions, senders and customer receivers → accounts), accepted values, ranges, and five singular
   tests (fraud only on transfers and cash-outs; timestamps inside the 31-day window; disputes filed after
-  their transaction by its sender; accounts opened before their first transaction).
+  their transaction by its sender; accounts opened before their first transaction; no login before its
+  account existed).
 - **Core:** primary keys; every fact foreign key resolves to its dimension; every date is in `dim_date`;
   each fact has exactly as many rows as its staging model (`dbt_utils.equal_rowcount`), so no join
   silently drops or duplicates rows.
@@ -296,8 +330,9 @@ contains no balance column, enforced by a test (design decision 2).
 
 ### 5. Data quality
 
-- 17 models, 154 tests; a full build on 6.36M transactions takes about 8 seconds, and CI runs the whole
-  pipeline on a committed sample on every pull request.
+- 17 models, 155 tests; a full build on 6.36M transactions takes about 8 seconds, and CI runs the whole
+  pipeline, plus a week-by-week replay, on a committed sample on every pull request.
+- Replaying the full data day by day produces the same warehouse as a one-shot build, row for row.
 - The three leakage and correctness tests were proven by breaking the model on purpose (design decision 1).
 - Doing the balance arithmetic in floating point instead of `decimal(18, 2)` would misclassify about 680k
   transactions as balance mismatches.
@@ -315,6 +350,7 @@ make ingest    # generate entities (~10 s), load everything into DuckDB's raw sc
 make build     # dbt deps + dbt build
 make docs      # dbt docs: lineage graph and data dictionary
 make results   # run the analyses and print the README Results tables
+make flow      # or: the whole pipeline as a Prefect flow
 ```
 
 **Kaggle token:** on kaggle.com, Settings → API → Create New Token, then move the downloaded
@@ -323,7 +359,9 @@ make results   # run the analyses and print the README Results tables
 `data/raw/paysim.csv`.
 
 Generated files go to `data/raw/generated/` and the warehouse to `warehouse/risk.duckdb`; both are
-git-ignored. About 1 GB of disk in total.
+git-ignored. Disk use: about 0.9 GB of inputs (the PaySim CSV and generated files) plus about 3.4 GB
+for the built warehouse. `make replay` builds a second copy (`warehouse/replay.duckdb`, about
+3.5 GB); delete it afterwards if you don't need it. `make clean` removes everything generated.
 
 ## Development workflow
 
@@ -331,7 +369,8 @@ git-ignored. About 1 GB of disk in total.
   or deleted.
 - Every pull request runs [CI](.github/workflows/ci.yml): **lint** (ruff) and **dbt**, which runs the
   whole pipeline (generate entities, load raw, `dbt build` with every test) on a committed
-  4,904-row PaySim sample in [`data/sample/`](data/sample/README.md). Both must pass before merging.
+  4,904-row PaySim sample in [`data/sample/`](data/sample/README.md), then replays the sample week by
+  week with the Prefect flow and requires the same result. Both must pass before merging.
 - Dependabot opens weekly pull requests for GitHub Actions and the direct Python dependencies.
 - Every merge to `main` republishes the [dbt docs site](https://karthikrk1.github.io/payments-risk-warehouse/)
   ([docs workflow](.github/workflows/docs.yml)): the pipeline runs on the sample, then
@@ -342,6 +381,7 @@ Run the same checks locally:
 ```bash
 make lint       # ruff
 make ci-build   # pipeline on the sample -> warehouse/ci.duckdb (your full warehouse is untouched)
+make ci-replay  # weekly replay of the sample; must equal ci-build
 ```
 
 `make sample` rebuilds the sample from the full CSV, deterministically. Fraud is over-represented in
@@ -351,13 +391,13 @@ it (12% vs 0.13%) so tests have cases to work on; results always come from the f
 
 - [x] Phase 1: staging, star schema, risk features, ML feature table, tests, hosted dbt docs
 - [x] GitHub Actions CI running the full pipeline and `dbt build` on every pull request
-- [ ] Orchestration with Prefect (dependency checks, SLA alerts)
+- [x] Orchestration with Prefect: quality gate, retries, timeouts, day-by-day replay
 - [ ] Data observability with Elementary
 - [ ] Snowflake target provisioned with Terraform
 - [ ] AI triage agent: classifies failed dbt tests and suggests fixes using the Claude API
 
 ## Tools
 
-Python · uv · dbt Core · DuckDB · _(planned)_ Prefect · Elementary · Snowflake · Terraform · GitHub Actions · Claude API
+Python · uv · dbt Core · DuckDB · Prefect · GitHub Actions · _(planned)_ Elementary · Claude API · Snowflake · Terraform
 
 Built with AI-assisted development (Claude Code); see `CLAUDE.md` for the project conventions it follows.

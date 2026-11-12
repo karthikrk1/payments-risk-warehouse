@@ -10,9 +10,12 @@ PAYSIM_CSV := data/raw/paysim.csv
 SAMPLE_CSV := data/sample/paysim_sample.csv
 CI_GENERATED := data/raw/ci_generated
 CI_WAREHOUSE := warehouse/ci.duckdb
+# Prefect flows run locally with a temporary server; don't send anonymous usage statistics.
+FLOW := PREFECT_SERVER_ANALYTICS_ENABLED=false $(PYTHON) flows/pipeline.py
 
 .DEFAULT_GOAL := help
-.PHONY: help setup data entities load ingest deps build docs lint format clean sample ci-build results
+.PHONY: help setup data entities load ingest deps build docs lint format clean sample ci-build \
+	results flow replay ci-replay
 
 help: ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -57,6 +60,15 @@ ci-build: ## Full pipeline on the committed sample into warehouse/ci.duckdb (sam
 	$(DBT) build --target ci
 	@# Check the analyses still compile and run; their output on the skewed sample is discarded.
 	$(PYTHON) scripts/run_analyses.py --warehouse $(CI_WAREHOUSE) --target ci > /dev/null
+
+flow: ## Full pipeline on the full data as a Prefect flow (generate, load, dbt build, analyses)
+	$(FLOW) --mode full --dataset full
+
+replay: ## Replay the full data day by day into warehouse/replay.duckdb; must equal `make build`
+	$(FLOW) --mode replay --dataset full --batch-hours 24 --compare-to warehouse/risk.duckdb
+
+ci-replay: ## Replay the sample week by week; must equal `make ci-build` (same as CI)
+	$(FLOW) --mode replay --dataset sample --batch-hours 168 --compare-to $(CI_WAREHOUSE)
 
 lint: ## Ruff lint and format check (same as CI)
 	$(RUFF) check .

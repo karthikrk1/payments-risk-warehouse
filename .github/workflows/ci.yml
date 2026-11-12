@@ -62,3 +62,8 @@ jobs:
 
       - name: Ingest sample and dbt build
         run: make ci-build
+
+      # The Prefect flow replays the sample week by week (load what existed by then, dbt build,
+      # quality gate) and fails unless the result equals the full build above, row for row.
+      - name: Replay sample with the Prefect flow
+        run: make ci-replay

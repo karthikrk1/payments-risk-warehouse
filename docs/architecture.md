@@ -74,13 +74,47 @@ Every feature group records the latest source event it read in an `audit_*` colu
 fail if any is not before the transaction, if a balance column appears, or if the window functions
 disagree with a brute-force recount. Each test was checked by breaking the model on purpose.
 
+## Orchestration and replay (Prefect)
+
+```mermaid
+flowchart LR
+    gen["generate-entities"]
+    deps["dbt-deps"]
+    load["load-raw<br/>--as-of-hours H<br/>(retries: 2)"]
+    build["dbt-build<br/>(no retries)"]
+    gate{{"Quality gate<br/>run_results.json:<br/>any error/fail?"}}
+    stop["Stop the flow<br/>name the failing tests"]
+    counts["warehouse-counts<br/>per-batch table artifact"]
+    next{"More batches?"}
+    compare["compare-warehouses<br/>replay = full build,<br/>row for row"]
+    analyses["run-analyses<br/>results artifact"]
+
+    gen --> deps --> load --> build --> gate
+    gate -- yes --> stop
+    gate -- no --> counts --> next
+    next -- "yes: H += batch" --> load
+    next -- no --> compare --> analyses
+```
+
+`flows/pipeline.py` runs in two modes:
+- **full** (`make flow`): one batch with no cutoff, the same as `make ingest` + `make build` +
+  `make results`, orchestrated.
+- **replay** (`make replay`, `make ci-replay`): start from an empty warehouse and load one batch of
+  simulated time at a time (a day locally, a week in CI), with `dbt build` and the gate after each, until
+  the last late dispute has arrived. The incremental `fct_transactions` grows batch by batch. At the end
+  every `core` and `ml` table must equal a one-shot full build.
+
+`load_raw.py --as-of-hours H` decides what existed at the cutoff: transactions by `step`, and each
+entity by the time it became known (`signup_ts`, `first_seen_ts`, `login_ts`, `filed_ts`). Each run
+builds its own warehouse file (`WAREHOUSE_PATH`), so replay never touches the full build.
+
 ## Build, test and publish
 
 ```mermaid
 flowchart LR
     pr["Pull request into main"]
     lint["CI: lint<br/>ruff check + format"]
-    cibuild["CI: dbt<br/>make ci-build on data/sample/<br/>generate → load → dbt build → analyses"]
+    cibuild["CI: dbt<br/>make ci-build, then make ci-replay<br/>(full build + weekly replay on data/sample/,<br/>replay must equal the build)"]
     merge["Merge to main<br/>(protected: PR + both checks)"]
     docs["Docs workflow<br/>make ci-build → dbt docs generate --static"]
     pages["GitHub Pages<br/>karthikrk1.github.io/payments-risk-warehouse"]
@@ -97,8 +131,9 @@ flowchart LR
 - **The sample** (`data/sample/paysim_sample.csv`, 4,904 rows, `make sample`) lets CI run the whole
   pipeline on real data in about 25 seconds, so model, test and dependency changes are exercised, not
   just parsed. Its fraud rate is skewed on purpose; results always come from the full data.
-- **Two warehouses, never mixed:** `warehouse/risk.duckdb` (full data, dbt target `dev`) and
-  `warehouse/ci.duckdb` (sample, target `ci`).
+- **Separate warehouses, never mixed:** `warehouse/risk.duckdb` (full data, dbt target `dev`),
+  `warehouse/ci.duckdb` (sample, target `ci`), and the replay copies `warehouse/replay.duckdb` and
+  `warehouse/ci_replay.duckdb`.
 
 ## Commands
 
@@ -110,6 +145,9 @@ flowchart LR
 | `make build` | `dbt deps` + `dbt build` on the full data |
 | `make results` | Run the analyses and print the README Results tables |
 | `make ci-build` | The whole pipeline on the sample (what CI runs) |
+| `make flow` | The full pipeline on the full data as a Prefect flow |
+| `make replay` | Replay the full data day by day; must equal `make build` |
+| `make ci-replay` | Replay the sample week by week; must equal `make ci-build` (what CI runs) |
 | `make docs` | Generate and serve the dbt docs locally |
 | `make lint` / `make format` | Ruff |
 | `make sample` | Rebuild the committed CI sample from the full CSV |
