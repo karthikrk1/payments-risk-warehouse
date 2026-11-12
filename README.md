@@ -7,9 +7,9 @@ account, device, login and dispute data into a tested **dimensional warehouse** 
 **point-in-time-correct ML feature table** for fraud detection, with data quality and lineage
 monitoring built in.
 
-> **Status:** Phase 1 complete: warehouse, point-in-time features, 155 tests, CI and hosted docs.
-> Phase 2 under way: Prefect orchestration with day-by-day replay is done; observability is next. See
-> the [Roadmap](#roadmap).
+> **Status:** Phase 1 complete: warehouse, point-in-time features, tests, CI and hosted docs.
+> Phase 2 under way: Prefect orchestration with day-by-day replay and custom data monitoring are done;
+> a monitoring chart page and an AI triage agent are next. See the [Roadmap](#roadmap).
 
 **Live docs and lineage graph:** <https://karthikrk1.github.io/payments-risk-warehouse/> (built from
 the CI sample, so row counts there are the sample's).
@@ -236,6 +236,43 @@ make replay     # replay the full data day by day, then compare with `make build
 prefect server start   # optional: the Prefect UI with run history, per-batch tables and results
 ```
 
+## Monitoring
+
+Tests check rules; monitoring checks behaviour. Every day of every source is measured and compared with
+its own recent history ([`models/monitoring/`](risk_warehouse/models/monitoring/)):
+
+- **Metrics** (`monitoring.mon_daily_metrics`), computed from the data itself: row counts per source
+  (empty days count as 0), median and 95th-percentile amount per transaction type, fraud share per type,
+  null shares of nullable-by-design columns, and the failed-login share.
+- **Scoring** (`monitoring.mon_daily_anomalies`): each day against the previous 7 days. A day is an
+  anomaly when its modified z-score (Iglewicz & Hoaglin: 0.6745 × (value − median) / MAD) exceeds **3.5**,
+  the published rule rather than a value tuned to this data, **and** it is at least **20%** from the
+  median. The floor exists because on millions of rows daily metrics are so stable that trivial moves
+  (failed-login share 5.71% → 5.77%) score as extreme.
+- **Known events** (a seed): verified, explained events show as `expected` instead of `anomaly`. Each
+  row says why, and a row is only added after checking the cause in the data.
+- **Severity:** unexplained anomalies are **warnings** (statistical, so reported rather than blocking).
+  But a monitor that never got scored is an **error**: that's how an empty window passes silently.
+- **Schema:** dbt model contracts on the facts and the ML table, so a dropped or retyped column fails the
+  build.
+- **Run log** (`ops.run_log`): after each batch the Prefect flow records what it saw: rows per source, the
+  latest event and freshness at the cutoff, and anomalies on that batch's days. After the last transaction
+  (Jan 31), freshness grows batch by batch, which is what a stopped source looks like.
+
+**On the full data:** 658 metric-days measured, 553 with enough history to score; 38 outliers explained by four known events (the Jan 3–7
+volume lull, the dispute ramp-up in the first two weeks, the Jan 18–25 volume collapse, the final day) and
+**14 left as warnings**. Two things the monitors surfaced:
+- **A burst nobody planned for:** on Jan 13, 2,125 transfers hit exactly the 10,000,000 cap, and only 12
+  were fraud; on Jan 14, 727 more, none fraud. Normally about 10 a day hit the cap, all fraud.
+- **PaySim injects fraud at a near-constant ~262 a day** whatever the legitimate volume, so the fraud
+  *share* explodes when volume drops: on Jan 31, all 272 transactions are fraud.
+
+**Why custom instead of Elementary?** Elementary was evaluated first, in a throwaway copy on the sample.
+It works with DuckDB, but its anomaly window ends at "now": on January 2024 data it measured 14 empty days
+in November 2026 and passed without checking anything. The only override is a variable its source marks
+"for test purposes only", it needed a dependency downgrade, and volume alerts fire on PaySim's own shape.
+The details are in [`docs/phase-2-plan.md`](docs/phase-2-plan.md).
+
 ## Data quality
 
 - Primary-key, foreign-key and accepted-value tests on every model
@@ -243,7 +280,7 @@ prefect server start   # optional: the Prefect UI with run history, per-batch ta
 - A leakage test on the ML feature table
 - Warn-level tests for known, rare source quirks; error-level for integrity breaks
 
-**Today:** 17 models and a seed, 155 tests; a full build on 6.36M transactions takes about 8 seconds.
+**Today:** 19 models, 2 seeds and 174 tests; a full build on 6.36M transactions takes about 11 seconds.
 - **Staging:** keys, relationships across sources (logins → accounts and devices, disputes →
   transactions, senders and customer receivers → accounts), accepted values, ranges, and five singular
   tests (fraud only on transfers and cash-outs; timestamps inside the 31-day window; disputes filed after
@@ -330,7 +367,7 @@ contains no balance column, enforced by a test (design decision 2).
 
 ### 5. Data quality
 
-- 17 models, 155 tests; a full build on 6.36M transactions takes about 8 seconds, and CI runs the whole
+- 19 models, 174 tests; a full build on 6.36M transactions takes about 11 seconds, and CI runs the whole
   pipeline, plus a week-by-week replay, on a committed sample on every pull request.
 - Replaying the full data day by day produces the same warehouse as a one-shot build, row for row.
 - The three leakage and correctness tests were proven by breaking the model on purpose (design decision 1).
@@ -392,12 +429,13 @@ it (12% vs 0.13%) so tests have cases to work on; results always come from the f
 - [x] Phase 1: staging, star schema, risk features, ML feature table, tests, hosted dbt docs
 - [x] GitHub Actions CI running the full pipeline and `dbt build` on every pull request
 - [x] Orchestration with Prefect: quality gate, retries, timeouts, day-by-day replay
-- [ ] Data observability with Elementary
-- [ ] Snowflake target provisioned with Terraform
+- [x] Data monitoring: daily metrics, robust anomaly scoring, known events, contracts, run log
+- [ ] Monitoring chart page on GitHub Pages
+- [ ] Snowflake + Terraform: documented as an extension, not built
 - [ ] AI triage agent: classifies failed dbt tests and suggests fixes using the Claude API
 
 ## Tools
 
-Python · uv · dbt Core · DuckDB · Prefect · GitHub Actions · _(planned)_ Elementary · Claude API · Snowflake · Terraform
+Python · uv · dbt Core · DuckDB · Prefect · GitHub Actions · _(planned)_ Claude API
 
 Built with AI-assisted development (Claude Code); see `CLAUDE.md` for the project conventions it follows.

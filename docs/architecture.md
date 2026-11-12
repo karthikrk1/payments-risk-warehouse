@@ -26,7 +26,8 @@ flowchart LR
             int["intermediate (views)<br/>int_account_hourly_activity<br/>int_account_velocity<br/>int_transaction_login_features<br/>int_transaction_dispute_features"]
             core["marts/core (tables)<br/>fct_transactions (incremental)<br/>fct_logins, fct_disputes<br/>dim_account, dim_device,<br/>dim_date, dim_transaction_type"]
             ml["marts/ml (table)<br/>ml_transaction_features"]
-            seed["seed<br/>transaction_types"]
+            mon["monitoring (tables)<br/>mon_daily_metrics<br/>mon_daily_anomalies"]
+            seed["seeds<br/>transaction_types, known_events"]
         end
     end
 
@@ -40,6 +41,9 @@ flowchart LR
     seed --> core
     core --> analyses
     ml --> analyses
+    core --> mon
+    ml --> mon
+    seed --> mon
 ```
 
 | Layer | Schema | Materialized | Rule |
@@ -49,6 +53,8 @@ flowchart LR
 | Intermediate | `intermediate` | views | Joins and point-in-time feature logic |
 | Core | `core` | tables (`fct_transactions` incremental) | Star schema for analytics |
 | ML | `ml` | table | One row per transaction: features, label, baseline, audit columns |
+| Monitoring | `monitoring` | tables | Daily metrics from the data and their anomaly scores |
+| Ops | `ops` | table written by the flow | `run_log`: what each run saw (freshness, rows, anomalies) |
 
 Schemas are used as named (`macros/generate_schema_name.sql`), not prefixed with `main_`.
 
@@ -85,13 +91,14 @@ flowchart LR
     gate{{"Quality gate<br/>run_results.json:<br/>any error/fail?"}}
     stop["Stop the flow<br/>name the failing tests"]
     counts["warehouse-counts<br/>per-batch table artifact"]
+    mon["monitoring-check<br/>this batch's anomalies (warnings)<br/>+ ops.run_log"]
     next{"More batches?"}
     compare["compare-warehouses<br/>replay = full build,<br/>row for row"]
     analyses["run-analyses<br/>results artifact"]
 
     gen --> deps --> load --> build --> gate
     gate -- yes --> stop
-    gate -- no --> counts --> next
+    gate -- no --> counts --> mon --> next
     next -- "yes: H += batch" --> load
     next -- no --> compare --> analyses
 ```
@@ -107,6 +114,28 @@ flowchart LR
 `load_raw.py --as-of-hours H` decides what existed at the cutoff: transactions by `step`, and each
 entity by the time it became known (`signup_ts`, `first_seen_ts`, `login_ts`, `filed_ts`). Each run
 builds its own warehouse file (`WAREHOUSE_PATH`), so replay never touches the full build.
+
+## Monitoring
+
+```mermaid
+flowchart LR
+    facts["fct_* and ml_transaction_features"]
+    metrics["mon_daily_metrics<br/>per source, metric, dimension, day"]
+    score["mon_daily_anomalies<br/>vs previous 7 days: median + MAD<br/>modified z > 3.5 and change ≥ 20%"]
+    known["known_events seed<br/>verified, explained events"]
+    status{{"status"}}
+    warn["assert_no_unexplained_anomalies<br/>(warning)"]
+    guard["assert_every_monitor_was_scored<br/>(error: no silent empty windows)"]
+
+    facts --> metrics --> score --> status
+    known --> status
+    status -- "anomaly" --> warn
+    score --> guard
+```
+
+Metrics come from the data, not from when the pipeline ran, so `monitoring` is part of the
+replay-equals-full-build check. `ops.run_log`, which records what each run saw at the time, is not.
+Model contracts on the facts and the ML table fail the build on a dropped or retyped column.
 
 ## Build, test and publish
 

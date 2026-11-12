@@ -1,5 +1,8 @@
 models:
   - name: ml_transaction_features
+    config:
+      contract:
+        enforced: true  # column names and types below are enforced; a change fails the build
     description: >
       **Grain: one row per transaction.** Point-in-time-correct fraud features, the `is_fraud`
       label, and PaySim's legacy rule as a baseline.
@@ -25,19 +28,24 @@ models:
             compare_model: ref('stg_paysim__transactions')
     columns:
       - name: transaction_id
+        data_type: bigint
         description: Primary key.
         data_tests:
           - unique
           - not_null
       - name: as_of_ts
+        data_type: timestamp
         description: The transaction's time; every feature is computed as of just before it.
         data_tests:
           - not_null
       - name: transaction_type
+        data_type: varchar
         description: Transaction type.
       - name: transaction_amount
+        data_type: decimal(18,2)
         description: Amount, known at decision time.
       - name: hour_of_day
+        data_type: integer
         description: Hour of the simulated day, 0-23 (from PaySim's step).
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
@@ -45,8 +53,10 @@ models:
                 min_value: 0
                 max_value: 23
       - name: is_merchant_receiver
+        data_type: boolean
         description: Receiver is a merchant. Receiver-side features are null then.
       - name: sender_account_age_hours
+        data_type: bigint
         description: Hours from the sender's signup to the transaction. Never negative.
         data_tests:
           - not_null
@@ -54,78 +64,102 @@ models:
               arguments:
                 min_value: 0
       - name: receiver_account_age_hours
+        data_type: bigint
         description: Same for the receiver. Null for merchants.
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
       - name: sender_kyc_status
+        data_type: varchar
         description: Sender's KYC status (a current snapshot; see the model SQL).
       - name: sender_activity_count_1h
+        data_type: bigint
         description: Transactions the sender sent or received in the previous hour.
         data_tests:
           - not_null
       - name: sender_activity_count_24h
+        data_type: bigint
         description: Same over the previous 24 hours.
         data_tests:
           - not_null
       - name: sender_activity_count_7d
+        data_type: bigint
         description: Same over the previous 168 hours.
         data_tests:
           - not_null
       - name: receiver_received_count_24h
+        data_type: bigint
         description: Transactions the receiver received in the previous 24 hours. Null for merchants.
       - name: receiver_received_count_7d
+        data_type: bigint
         description: Same over the previous 168 hours. Null for merchants.
       - name: receiver_received_amount_24h
+        data_type: decimal(18,2)
         description: Amount the receiver received in the previous 24 hours. Null for merchants.
       - name: receiver_received_amount_7d
+        data_type: decimal(18,2)
         description: Same over the previous 168 hours. Null for merchants.
       - name: amount_to_receiver_avg_7d_ratio
+        data_type: double
         description: >
           This amount divided by the receiver's average received amount over the previous 168
           hours. Null when the receiver had received nothing in that time, or is a merchant.
       - name: login_count_24h
+        data_type: bigint
         description: Sender's login attempts in the 24 hours before the transaction.
         data_tests:
           - not_null
       - name: failed_login_count_24h
+        data_type: bigint
         description: Failed attempts among them. Planted, synthetic signal.
         data_tests:
           - not_null
       - name: device_prior_other_account_count
+        data_type: bigint
         description: >
           Other accounts that had logged in on the device of the sender's latest successful login,
           before the transaction. Planted, synthetic signal.
         data_tests:
           - not_null
       - name: is_latest_login_foreign_ip
+        data_type: boolean
         description: The sender's latest successful login came from outside their home country.
       - name: sender_prior_dispute_count
+        data_type: bigint
         description: Disputes the sender had filed before the transaction.
         data_tests:
           - not_null
       - name: receiver_prior_dispute_count
+        data_type: bigint
         description: Disputes already filed on transactions the receiver had received.
         data_tests:
           - not_null
       - name: is_fraud
+        data_type: boolean
         description: The label. Not a feature.
         data_tests:
           - not_null
       - name: baseline_is_flagged_fraud
+        data_type: boolean
         description: PaySim's legacy rule flag (16 rows; see stg source docs), the baseline to beat. Not a feature.
         data_tests:
           - not_null
       - name: audit_sender_signup_ts
+        data_type: timestamp
         description: Audit, not a feature. Sender's signup time.
       - name: audit_receiver_signup_ts
+        data_type: timestamp
         description: Audit, not a feature. Receiver's signup time.
       - name: audit_sender_velocity_ts
+        data_type: timestamp
         description: Audit, not a feature. Latest hour the sender velocity windows read.
       - name: audit_receiver_velocity_ts
+        data_type: timestamp
         description: Audit, not a feature. Latest hour the receiver velocity windows read.
       - name: audit_login_ts
+        data_type: timestamp
         description: Audit, not a feature. Latest login the login features read.
       - name: audit_dispute_ts
+        data_type: timestamp
         description: Audit, not a feature. Latest dispute the dispute features read.

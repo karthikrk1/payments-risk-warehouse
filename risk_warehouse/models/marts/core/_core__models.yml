@@ -140,6 +140,9 @@ models:
   # --- Facts --------------------------------------------------------------------------------
 
   - name: fct_transactions
+    config:
+      contract:
+        enforced: true  # column names and types below are enforced; a change fails the build
     description: >
       **Grain: one row per transaction.** Incremental on `transaction_id` (delete+insert): later
       runs load only transactions newer than the latest already loaded, which is safe because
@@ -152,11 +155,13 @@ models:
             compare_model: ref('stg_paysim__transactions')
     columns:
       - name: transaction_id
+        data_type: bigint
         description: Primary key. The transaction's data row in the PaySim file.
         data_tests:
           - unique
           - not_null
       - name: transaction_type_key
+        data_type: varchar
         description: Foreign key to dim_transaction_type.
         data_tests:
           - not_null
@@ -165,6 +170,7 @@ models:
                 to: ref('dim_transaction_type')
                 field: transaction_type_key
       - name: sender_account_key
+        data_type: varchar
         description: Foreign key to dim_account (always a customer).
         data_tests:
           - not_null
@@ -173,6 +179,7 @@ models:
                 to: ref('dim_account')
                 field: account_key
       - name: receiver_account_key
+        data_type: varchar
         description: Foreign key to dim_account (a merchant for payments, otherwise a customer).
         data_tests:
           - not_null
@@ -181,6 +188,7 @@ models:
                 to: ref('dim_account')
                 field: account_key
       - name: transaction_date
+        data_type: date
         description: Foreign key to dim_date.
         data_tests:
           - not_null
@@ -189,43 +197,61 @@ models:
                 to: ref('dim_date')
                 field: date_day
       - name: transaction_ts
+        data_type: timestamp
         description: When the transaction happened (hour precision).
       - name: paysim_step
+        data_type: integer
         description: PaySim's hour index.
       - name: transaction_type
+        data_type: varchar
         description: Natural key of the type, kept alongside the surrogate key.
       - name: sender_account_id
+        data_type: varchar
         description: Natural key of the sender.
       - name: receiver_account_id
+        data_type: varchar
         description: Natural key of the receiver.
       - name: transaction_amount
+        data_type: decimal(18,2)
         description: Amount moved, decimal(18, 2).
         data_tests:
           - not_null
       - name: sender_balance_before_amount
+        data_type: decimal(18,2)
         description: Analysis only; not an ML feature.
       - name: sender_balance_after_amount
+        data_type: decimal(18,2)
         description: Post-transaction. Analysis only; not an ML feature.
       - name: receiver_balance_before_amount
+        data_type: decimal(18,2)
         description: Null for merchants. Analysis only; not an ML feature.
       - name: receiver_balance_after_amount
+        data_type: decimal(18,2)
         description: Null for merchants. Post-transaction. Analysis only; not an ML feature.
       - name: has_sender_balance_mismatch
+        data_type: boolean
         description: Post-transaction. Analysis only; not an ML feature.
       - name: has_receiver_balance_mismatch
+        data_type: boolean
         description: Null for merchants. Post-transaction. Analysis only; not an ML feature.
       - name: has_balance_mismatch
+        data_type: boolean
         description: Post-transaction. Analysis only; not an ML feature.
       - name: is_fraud
+        data_type: boolean
         description: The label.
         data_tests:
           - not_null
       - name: is_flagged_fraud
+        data_type: boolean
         description: PaySim's legacy rule flag (16 rows; the documented "over 200.000" rule doesn't match the data), the baseline to beat.
         data_tests:
           - not_null
 
   - name: fct_logins
+    config:
+      contract:
+        enforced: true  # column names and types below are enforced; a change fails the build
     description: >
       **Grain: one row per login attempt.** Failed logins and shared devices carry a planted,
       synthetic fraud signal (see the README).
@@ -235,11 +261,13 @@ models:
             compare_model: ref('stg_app__logins')
     columns:
       - name: login_id
+        data_type: varchar
         description: Primary key.
         data_tests:
           - unique
           - not_null
       - name: account_key
+        data_type: varchar
         description: Foreign key to dim_account.
         data_tests:
           - not_null
@@ -248,6 +276,7 @@ models:
                 to: ref('dim_account')
                 field: account_key
       - name: device_key
+        data_type: varchar
         description: Foreign key to dim_device.
         data_tests:
           - not_null
@@ -256,6 +285,7 @@ models:
                 to: ref('dim_device')
                 field: device_key
       - name: login_date
+        data_type: date
         description: Foreign key to dim_date.
         data_tests:
           - not_null
@@ -264,23 +294,32 @@ models:
                 to: ref('dim_date')
                 field: date_day
       - name: login_ts
+        data_type: timestamp
         description: When the attempt happened.
       - name: account_id
+        data_type: varchar
         description: Natural key of the account.
       - name: device_id
+        data_type: varchar
         description: Natural key of the device.
       - name: is_success
+        data_type: boolean
         description: Whether the attempt succeeded.
         data_tests:
           - not_null
       - name: ip_country_code
+        data_type: varchar
         description: Country of the login IP.
       - name: is_foreign_ip
+        data_type: boolean
         description: The login IP's country differs from the account's home country.
         data_tests:
           - not_null
 
   - name: fct_disputes
+    config:
+      contract:
+        enforced: true  # column names and types below are enforced; a change fails the build
     description: >
       **Grain: one row per dispute.** Disputes are filed after the fact, so a feature may only
       count disputes filed before the transaction being scored.
@@ -290,11 +329,13 @@ models:
             compare_model: ref('stg_app__disputes')
     columns:
       - name: dispute_id
+        data_type: varchar
         description: Primary key.
         data_tests:
           - unique
           - not_null
       - name: transaction_id
+        data_type: bigint
         description: Foreign key to fct_transactions; one dispute per transaction at most.
         data_tests:
           - unique
@@ -304,6 +345,7 @@ models:
                 to: ref('fct_transactions')
                 field: transaction_id
       - name: account_key
+        data_type: varchar
         description: Foreign key to dim_account (the account that filed, i.e. the sender).
         data_tests:
           - not_null
@@ -312,6 +354,7 @@ models:
                 to: ref('dim_account')
                 field: account_key
       - name: filed_date
+        data_type: date
         description: Foreign key to dim_date.
         data_tests:
           - not_null
@@ -320,14 +363,19 @@ models:
                 to: ref('dim_date')
                 field: date_day
       - name: filed_ts
+        data_type: timestamp
         description: When the dispute was filed.
       - name: account_id
+        data_type: varchar
         description: Natural key of the filing account.
       - name: dispute_reason
+        data_type: varchar
         description: "`unauthorized`, `not_received` or `other`."
       - name: dispute_status
+        data_type: varchar
         description: "`open`, `won` or `lost`."
       - name: hours_to_file
+        data_type: bigint
         description: Whole hours between the transaction and the dispute. At least 1.
         data_tests:
           - not_null
