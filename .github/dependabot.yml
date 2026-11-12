@@ -11,10 +11,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    # requirements.txt pins dbt's whole dependency tree, and those versions follow dbt (bumping
-    # them one by one breaks dbt's own constraints). Only update what this project uses directly.
-    # dbt-core and dbt-duckdb move together; update them by hand.
+    # requirements.txt pins the whole dependency tree of dbt and Prefect, and those versions follow
+    # them (bumping them one by one breaks their own constraints). Only update what this project
+    # uses directly. dbt-core and dbt-duckdb move together; update them by hand.
     allow:
       - dependency-name: duckdb
+      - dependency-name: prefect
       - dependency-name: pyyaml
       - dependency-name: ruff

@@ -18,8 +18,9 @@ to explain every model and every line in an interview, so prefer simple, readabl
   Python, and do not call `pip` directly; use `uv pip`.
 - **dbt Core 1.12** with the **dbt-duckdb** adapter. Local warehouse file: `warehouse/risk.duckdb`.
 - GitHub Actions: CI (`lint`, `dbt`) on every PR; docs published to GitHub Pages on merge.
-- Phase 2 (planned, in order): Prefect orchestration, Elementary observability, a Claude-API triage
-  agent for test failures, optionally Snowflake + Terraform. Plan and status: `docs/phase-2-plan.md`.
+- Prefect 3 orchestration (`flows/pipeline.py`) with replay mode.
+- Phase 2 next (in order): Elementary observability, a Claude-API triage agent for test failures,
+  optionally Snowflake + Terraform. Plan and status: `docs/phase-2-plan.md`.
 
 ## Repository layout
 
@@ -27,7 +28,7 @@ to explain every model and every line in an interview, so prefer simple, readabl
 payments-risk-warehouse/
 ├── CLAUDE.md
 ├── README.md
-├── Makefile                  # `make help` lists targets: setup, data, ingest, build, results, ci-build, docs, lint, ...
+├── Makefile                  # `make help` lists targets: setup, data, ingest, build, results, flow, replay, ...
 ├── requirements.txt          # runtime, pinned
 ├── requirements-dev.txt      # + ruff
 ├── ruff.toml
@@ -43,8 +44,11 @@ payments-risk-warehouse/
 │   ├── generate_entities.py  # synthetic accounts, devices, logins, disputes (MD5-seeded, reproducible)
 │   ├── load_raw.py           # loads raw files into DuckDB schema `raw`
 │   └── make_sample.py        # builds the CI sample
+├── flows/
+│   └── pipeline.py           # Prefect flow: full run or replay, with the dbt quality gate
 ├── scripts/
-│   └── run_analyses.py       # `make results`: analyses → Markdown tables
+│   ├── run_analyses.py       # `make results`: analyses → Markdown tables
+│   └── compare_warehouses.py # replay check: core/ml tables equal a full build, row for row
 ├── risk_warehouse/           # dbt project (profiles.yml in here; targets dev and ci)
 │   ├── models/
 │   │   ├── staging/          # stg_*  : 1:1 with raw sources, rename/cast/clean only
@@ -170,7 +174,27 @@ make results   # analyses -> Markdown tables; README Results is pasted from this
 make lint      # ruff, same as CI
 make ci-build  # whole pipeline on data/sample/paysim_sample.csv -> warehouse/ci.duckdb, same as CI
 make sample    # rebuild the committed sample from the full CSV (deterministic)
+make flow      # full pipeline as a Prefect flow (flows/pipeline.py)
+make replay    # replay the full data day by day into warehouse/replay.duckdb; must equal make build
+make ci-replay # replay the sample week by week; must equal make ci-build, same as CI
 ```
+
+## Orchestration and replay
+
+- `flows/pipeline.py` (Prefect 3, no server or account needed) runs ingestion and dbt as
+  subprocesses and gates on dbt's `target/run_results.json`: any `error`/`fail` raises
+  `DataQualityGateError`, naming the nodes. Loading retries; `dbt build` never does.
+- **Replay:** `load_raw.py --as-of-hours H` loads only what existed before the cutoff. **A new raw
+  source must define the time it becomes known** (`ENTITY_TIME_COLUMNS` in `load_raw.py`), or replay
+  will leak future rows into early batches.
+- **Replay must equal a full build** (`scripts/compare_warehouses.py` over `core` and `ml`). If a change
+  breaks that, the change is wrong, not the check: incremental logic, point-in-time features and the
+  data's "known at" times all have to agree.
+- `WAREHOUSE_PATH` overrides the DuckDB file in `profiles.yml`. The flow sets it so replay never touches
+  `warehouse/risk.duckdb`.
+- Don't run two dbt commands at once in this project: they share `risk_warehouse/target/`, and the gate
+  reads `run_results.json` from there.
+- `make` sets `PREFECT_SERVER_ANALYTICS_ENABLED=false` for flow runs; keep it when adding targets.
 
 ## Working rules for Claude
 
@@ -182,8 +206,9 @@ make sample    # rebuild the committed sample from the full CSV (deterministic)
   with `make sample`, never edit it by hand. Rates in the sample are skewed (12% fraud); never quote
   results from it.
 - `main` is protected: no direct pushes, no force pushes, no deletion. Work on a branch and open a
-  pull request; it merges only when the CI checks `lint` (ruff) and `dbt` (the full pipeline on the
-  sample) pass. Run `make lint` and `make ci-build` locally before pushing.
+  pull request; it merges only when the CI checks `lint` (ruff) and `dbt` (the full pipeline and a
+  weekly replay on the sample) pass. Run `make lint`, `make ci-build` and `make ci-replay` locally
+  before pushing.
 - Every merge to `main` republishes the dbt docs site (`.github/workflows/docs.yml`, GitHub Pages:
   https://karthikrk1.github.io/payments-risk-warehouse/), built from the sample. Model and column
   descriptions are public there, so keep them accurate and free of anything that isn't in the repo.

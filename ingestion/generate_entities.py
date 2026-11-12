@@ -185,7 +185,11 @@ def generate(con: duckdb.DuckDBPyConnection, seed: str, csv_path: Path) -> None:
     """)
 
     # Logins: one successful login 1-30 minutes before each sending transaction, preceded by
-    # its failed attempts 31 minutes to 6.5 hours before it. lk is the login's rnd() key.
+    # its failed attempts 31 minutes to 6.5 hours before it, but never before the account existed:
+    # an account can be opened as little as 1 hour before its first transaction, so a failed
+    # attempt that would fall before signup is moved to 1 minute after it. (The successful login
+    # is always after signup: it's at most 30 minutes before the transaction.) lk is the login's
+    # rnd() key.
     max_failed = max(ps["max_failed_logins"].values())
     con.execute(f"""
         create or replace table logins as
@@ -218,7 +222,7 @@ def generate(con: duckdb.DuckDBPyConnection, seed: str, csv_path: Path) -> None:
             entity_id('L', lk) as login_id,
             sender_id as account_id,
             device_id,
-            login_ts,
+            greatest(attempts.login_ts, a.signup_ts + to_minutes(1)) as login_ts,
             is_success,
             case
                 when rnd(lk || '|ip') < {1 - FOREIGN_IP_SHARE} then a.country
