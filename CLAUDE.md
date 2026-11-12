@@ -18,9 +18,9 @@ to explain every model and every line in an interview, so prefer simple, readabl
   Python, and do not call `pip` directly; use `uv pip`.
 - **dbt Core 1.12** with the **dbt-duckdb** adapter. Local warehouse file: `warehouse/risk.duckdb`.
 - GitHub Actions: CI (`lint`, `dbt`) on every PR; docs published to GitHub Pages on merge.
-- Prefect 3 orchestration (`flows/pipeline.py`) with replay mode.
-- Phase 2 next (in order): Elementary observability, a Claude-API triage agent for test failures,
-  optionally Snowflake + Terraform. Plan and status: `docs/phase-2-plan.md`.
+- Prefect 3 orchestration (`flows/pipeline.py`) with replay mode; custom data monitoring in dbt.
+- Phase 2 next: a monitoring chart page, then a Claude-API triage agent for test failures. Snowflake +
+  Terraform is documented as an extension, not built. Plan and status: `docs/phase-2-plan.md`.
 
 ## Repository layout
 
@@ -53,9 +53,10 @@ payments-risk-warehouse/
 │   ├── models/
 │   │   ├── staging/          # stg_*  : 1:1 with raw sources, rename/cast/clean only
 │   │   ├── intermediate/     # int_*  : joins, window features, business logic
-│   │   └── marts/
-│   │       ├── core/         # dim_* and fct_* (star schema)
-│   │       └── ml/           # ML-ready feature tables
+│   │   ├── marts/
+│   │   │   ├── core/         # dim_* and fct_* (star schema, contracts enforced)
+│   │   │   └── ml/           # ML-ready feature tables (contract enforced)
+│   │   └── monitoring/       # mon_*  : daily metrics and anomaly scores
 │   ├── analyses/             # results queries (precision/recall via macros/rule_metrics.sql)
 │   ├── tests/                # singular data tests, incl. the leakage tests
 │   ├── macros/
@@ -195,6 +196,26 @@ make ci-replay # replay the sample week by week; must equal make ci-build, same 
 - Don't run two dbt commands at once in this project: they share `risk_warehouse/target/`, and the gate
   reads `run_results.json` from there.
 - `make` sets `PREFECT_SERVER_ANALYTICS_ENABLED=false` for flow runs; keep it when adding targets.
+
+## Monitoring
+
+- `models/monitoring/`: `mon_daily_metrics` (computed from the data, so replay must still equal a full
+  build; `scripts/compare_warehouses.py` covers `core`, `ml` and `monitoring`) and `mon_daily_anomalies`
+  (each day vs the previous 7: modified z-score > 3.5 **and** ≥ 20% from the median; vars in
+  `dbt_project.yml`). Don't tune those thresholds to make warnings go away.
+- **`known_events` seed:** add a row only after verifying the cause in the data, with the reason in
+  `description`. Never add one to silence a warning. The Jan 13-14 burst at the 10,000,000 cap is
+  deliberately unexplained.
+- Anomalies are **warnings** (`assert_no_unexplained_anomalies`); a monitor that was never scored once
+  its source has history is an **error** (`assert_every_monitor_was_scored`). **A new monitor must be
+  added to that test's `expected_monitors` list.**
+- `ops.run_log` is written by the flow (`monitoring-check` task), not dbt. It records what each run saw,
+  differs between replay and a full build by design, and is not compared.
+- Model contracts are enforced on `fct_*` and `ml_transaction_features`: changing a column means
+  updating its `data_type` in the YAML. Cast aggregates explicitly; DuckDB's `SUM` returns `HUGEINT` /
+  `DECIMAL(38,2)`, which aren't portable.
+- Elementary was evaluated and not adopted (its window ends at "now"; see `docs/phase-2-plan.md`).
+  Don't add it back without solving that.
 
 ## Working rules for Claude
 

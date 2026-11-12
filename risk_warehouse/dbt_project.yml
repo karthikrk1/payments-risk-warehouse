@@ -24,6 +24,18 @@ vars:
   # tests from every fact date to dim_date fail if data falls outside this range.
   dim_date_start: '2021-01-01'
   dim_date_end: '2024-03-01'
+  # Monitoring (models/monitoring/): each day is compared with the previous `baseline_days` days,
+  # needs at least `min_baseline_days` of them, and is an anomaly when its modified z-score
+  # (Iglewicz & Hoaglin) exceeds `anomaly_threshold`. 3.5 is the published rule, not a value tuned
+  # to PaySim.
+  monitoring_baseline_days: 7
+  monitoring_min_baseline_days: 5
+  monitoring_anomaly_threshold: 3.5
+  # ...and is at least this far from the baseline median, relative to it. On millions of rows
+  # daily metrics are so stable that MAD is tiny and trivial moves (5.71% -> 5.77%) score as extreme;
+  # this keeps only material changes. On the full data: 0% -> 65 flags, 10% -> 59, 20% -> 52,
+  # 25-30% -> 51, i.e. above ~20% the remaining flags are all large.
+  monitoring_min_relative_change: 0.2
 
 seeds:
   risk_warehouse:
@@ -34,6 +46,14 @@ seeds:
         transaction_type_label: varchar
         sender_direction: varchar
         receiver_kind: varchar
+        description: varchar
+    known_events:
+      +column_types:
+        event_id: varchar
+        source: varchar
+        metric_name: varchar
+        start_date: date
+        end_date: date
         description: varchar
 
 models:
@@ -53,3 +73,7 @@ models:
         +schema: core
       ml:
         +schema: ml
+    # Daily data-quality metrics and anomaly scores, computed from the data itself.
+    monitoring:
+      +schema: monitoring
+      +materialized: table

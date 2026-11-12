@@ -22,3 +22,40 @@ seeds:
           - accepted_values:
               arguments:
                 values: ["customer", "merchant"]
+
+  - name: known_events
+    description: >
+      Real, verified events in the data that explain monitoring outliers, so they show as `expected`
+      instead of `anomaly`. Each row says which source and metric (`*` for all) it covers and for
+      which days, and *why*; add a row only after checking the cause in the data, never to silence a
+      warning. Unexplained outliers (for example the Jan 13-14 burst of legitimate transfers at the
+      10,000,000 cap) stay as warnings on purpose.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["event_id", "source", "metric_name"]
+    columns:
+      - name: event_id
+        description: Short id, shared by the rows of one event.
+        data_tests:
+          - not_null
+      - name: source
+        description: Monitored source the row applies to.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["transactions", "logins", "disputes", "ml_features"]
+      - name: metric_name
+        description: Metric the row applies to, or `*` for every metric of the source.
+      - name: start_date
+        description: First affected day.
+        data_tests:
+          - not_null
+      - name: end_date
+        description: Last affected day (inclusive).
+        data_tests:
+          - not_null
+      - name: description
+        description: What happened and how it was verified.
+        data_tests:
+          - not_null

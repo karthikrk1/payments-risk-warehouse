@@ -31,11 +31,13 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import duckdb
 from prefect import flow, get_run_logger, task
 from prefect.artifacts import create_markdown_artifact, create_table_artifact
+from prefect.runtime import flow_run
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DBT_DIR = REPO_ROOT / "risk_warehouse"
@@ -205,6 +207,105 @@ def run_analyses(dataset_name: str, warehouse: Path) -> str:
     return output
 
 
+# Sources recorded in ops.run_log: table and the column saying when each row's event happened.
+RUN_LOG_SOURCES = {
+    "transactions": ("core.fct_transactions", "transaction_ts"),
+    "logins": ("core.fct_logins", "login_ts"),
+    "disputes": ("core.fct_disputes", "filed_ts"),
+}
+
+
+def ingestion_common():
+    """The ingestion helpers (PaySim reader, anchor date), shared so the flow matches load_raw."""
+    path = str(REPO_ROOT / "ingestion")
+    if path not in sys.path:
+        sys.path.insert(0, path)
+    import common
+
+    return common
+
+
+@task(name="monitoring-check")
+def monitoring_check(
+    warehouse: Path, mode: str, batch: int, as_of_hours: int | None, batch_hours: int
+) -> dict:
+    """Report the monitoring outcome for this batch's days and append what it saw to ops.run_log.
+
+    Anomalies are warnings: they're logged and summarised, never raised. The run log is the one
+    place that records what each run saw at the time (row totals, freshness at the cutoff), so it
+    lives in its own `ops` schema and is excluded from the replay-equals-full-build check.
+    """
+    logger = get_run_logger()
+    start = datetime.fromisoformat(ingestion_common().paysim_start_date())
+    as_of_ts = start + timedelta(hours=as_of_hours) if as_of_hours is not None else None
+    days = ""
+    if as_of_ts is not None:
+        first_day = (as_of_ts - timedelta(hours=batch_hours)).date()
+        days = f"and metric_date >= date '{first_day}' and metric_date < date '{as_of_ts.date()}'"
+
+    with duckdb.connect(str(warehouse)) as con:
+        flagged = con.execute(f"""
+            select status, metric_date, source, metric_name, dimension,
+                   round(metric_value, 4), round(baseline_median, 4), known_event_id
+            from monitoring.mon_daily_anomalies
+            where status in ('anomaly', 'expected') {days}
+            order by metric_date, source, metric_name, dimension
+        """).fetchall()
+        anomalies = [r for r in flagged if r[0] == "anomaly"]
+        expected = [r for r in flagged if r[0] == "expected"]
+        for _, day, source, metric, dimension, value, median, _ in anomalies:
+            logger.warning(
+                f"Unexplained anomaly {day} {source}.{metric}[{dimension}]: {value} "
+                f"(baseline median {median})"
+            )
+
+        con.execute("create schema if not exists ops")
+        con.execute("""
+            create table if not exists ops.run_log (
+                flow_run_id varchar, mode varchar, batch integer, as_of_ts timestamp,
+                source varchar, rows_total bigint, latest_event_ts timestamp,
+                freshness_hours double, batch_anomalies integer, batch_expected integer,
+                recorded_at timestamp
+            )
+        """)
+        for source, (table, ts_column) in RUN_LOG_SOURCES.items():
+            total, latest = con.execute(
+                f"select count(*), max({ts_column}) from {table}"
+            ).fetchone()
+            freshness = (as_of_ts - latest).total_seconds() / 3600 if as_of_ts and latest else None
+            con.execute(
+                "insert into ops.run_log values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, current_timestamp)",
+                [
+                    str(flow_run.id),
+                    mode,
+                    batch,
+                    as_of_ts,
+                    source,
+                    total,
+                    latest,
+                    freshness,
+                    len(anomalies),
+                    len(expected),
+                ],
+            )
+    return {
+        "anomalies": len(anomalies),
+        "expected": len(expected),
+        "details": [
+            {"day": str(r[1]), "monitor": f"{r[2]}.{r[3]}[{r[4]}]", "value": r[5], "median": r[6]}
+            for r in anomalies
+        ],
+    }
+
+
+def anomaly_markdown(details: list[dict]) -> str:
+    if not details:
+        return "No unexplained anomalies."
+    lines = ["| Day | Monitor | Value | Baseline median |", "|---|---|---:|---:|"]
+    lines += [f"| {d['day']} | `{d['monitor']}` | {d['value']} | {d['median']} |" for d in details]
+    return f"{len(details)} unexplained anomalies (warnings, for review):\n\n" + "\n".join(lines)
+
+
 @task(name="compare-warehouses")
 def compare_warehouses(expected: Path, actual: Path) -> None:
     run_command([PYTHON, "scripts/compare_warehouses.py", str(expected), str(actual)])
@@ -213,8 +314,8 @@ def compare_warehouses(expected: Path, actual: Path) -> None:
 def replay_horizon_hours(dataset: Dataset) -> int:
     """Hours after paysim_start_date needed for every source event to have happened."""
     # Reuse ingestion's PaySim reader and anchor date so the horizon matches what load_raw loads.
-    sys.path.insert(0, str(REPO_ROOT / "ingestion"))
-    from common import paysim_select_sql, paysim_start_date
+    common = ingestion_common()
+    paysim_select_sql, paysim_start_date = common.paysim_select_sql, common.paysim_start_date
 
     with duckdb.connect() as con:
         max_step = con.execute(
@@ -260,6 +361,10 @@ def pipeline(
         load_raw(dataset, target_path)
         build = dbt_build(dataset.target, target_path)
         counts = warehouse_counts(target_path)
+        monitoring = monitoring_check(target_path, mode, 1, None, batch_hours)
+        create_markdown_artifact(
+            key=f"monitoring-{dataset_name}", markdown=anomaly_markdown(monitoring["details"])
+        )
         run_analyses(dataset_name, target_path)
         create_markdown_artifact(
             key=f"run-summary-{dataset_name}",
@@ -268,6 +373,8 @@ def pipeline(
                 f"dbt: {build['passed']} passed, {build['warned']} warned, "
                 f"{build['failed']} failed of {build['nodes']} nodes.\n\n"
                 + "\n".join(f"- `{t}`: {n:,} rows" for t, n in counts.items())
+                + f"\n\nMonitoring: {monitoring['anomalies']} unexplained anomalies, "
+                f"{monitoring['expected']} explained by known events."
                 + f"\n\nTook {time.perf_counter() - started:.0f} s."
             ),
         )
@@ -280,6 +387,7 @@ def pipeline(
     print(f"Replaying {horizon} hours in {batches} batches of {batch_hours} hours")
 
     rows = []
+    all_anomalies = []
     previous = 0
     for batch in range(1, batches + 1):
         as_of = batch * batch_hours
@@ -287,6 +395,8 @@ def pipeline(
         load_raw(dataset, target_path, as_of_hours=as_of)
         build = dbt_build(dataset.target, target_path, full_refresh=(batch == 1))
         counts = warehouse_counts(target_path)
+        monitoring = monitoring_check(target_path, mode, batch, as_of, batch_hours)
+        all_anomalies += monitoring["details"]
         transactions = counts["core.fct_transactions"]
         rows.append(
             {
@@ -297,19 +407,25 @@ def pipeline(
                 "disputes": counts["core.fct_disputes"],
                 "tests_passed": build["passed"],
                 "tests_warned": build["warned"],
+                "anomalies": monitoring["anomalies"],
+                "expected": monitoring["expected"],
                 "seconds": round(time.perf_counter() - batch_started, 1),
             }
         )
         previous = transactions
         print(
             f"Batch {batch}/{batches} (as of hour {as_of}): +{rows[-1]['new_transactions']:,} "
-            f"transactions, {counts['core.fct_disputes']:,} disputes"
+            f"transactions, {counts['core.fct_disputes']:,} disputes, "
+            f"{monitoring['anomalies']} unexplained anomalies"
         )
 
     create_table_artifact(
         key=f"replay-{dataset_name}",
         table=rows,
         description=f"Replay of the {dataset_name} dataset in {batch_hours}-hour batches.",
+    )
+    create_markdown_artifact(
+        key=f"monitoring-replay-{dataset_name}", markdown=anomaly_markdown(all_anomalies)
     )
     if compare_to:
         compare_warehouses(Path(compare_to), target_path)

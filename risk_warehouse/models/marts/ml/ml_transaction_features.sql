@@ -57,20 +57,22 @@ select
 
     -- Velocity in the hours before this one. Sender history is almost always empty (99.85% of
     -- PaySim senders appear once), so the receiver side carries the signal.
-    sender_velocity.activity_count_1h as sender_activity_count_1h,
-    sender_velocity.activity_count_24h as sender_activity_count_24h,
-    sender_velocity.activity_count_7d as sender_activity_count_7d,
-    receiver_velocity.received_count_24h as receiver_received_count_24h,
-    receiver_velocity.received_count_7d as receiver_received_count_7d,
-    receiver_velocity.received_amount_24h as receiver_received_amount_24h,
-    receiver_velocity.received_amount_7d as receiver_received_amount_7d,
+    -- Explicit types: DuckDB widens SUM results to HUGEINT / DECIMAL(38,2), which are accidental
+    -- and not portable (Snowflake has no HUGEINT). The model contract pins these.
+    cast(sender_velocity.activity_count_1h as bigint) as sender_activity_count_1h,
+    cast(sender_velocity.activity_count_24h as bigint) as sender_activity_count_24h,
+    cast(sender_velocity.activity_count_7d as bigint) as sender_activity_count_7d,
+    cast(receiver_velocity.received_count_24h as bigint) as receiver_received_count_24h,
+    cast(receiver_velocity.received_count_7d as bigint) as receiver_received_count_7d,
+    cast(receiver_velocity.received_amount_24h as decimal(18, 2)) as receiver_received_amount_24h,
+    cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d,
     transactions.transaction_amount
         / nullif(receiver_velocity.received_amount_7d / nullif(receiver_velocity.received_count_7d, 0), 0)
         as amount_to_receiver_avg_7d_ratio,
 
     -- Logins and devices (planted, synthetic signal; see the README)
     logins.login_count_24h,
-    logins.failed_login_count_24h,
+    cast(logins.failed_login_count_24h as bigint) as failed_login_count_24h,
     logins.device_prior_other_account_count,
     logins.is_latest_login_foreign_ip,
 

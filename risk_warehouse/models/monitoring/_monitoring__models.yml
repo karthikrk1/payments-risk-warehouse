@@ -1,0 +1,79 @@
+models:
+  - name: mon_daily_metrics
+    description: >
+      **Grain: one row per source, metric, dimension and day.** Daily data-quality metrics computed
+      from the data itself (so a replay produces the same values as a one-shot build): row counts
+      (empty days count as 0), median and 95th-percentile amount per transaction type, fraud share
+      per type, null shares of nullable-by-design columns, and the failed-login share.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["source", "metric_name", "dimension", "metric_date"]
+    columns:
+      - name: source
+        description: "`transactions`, `logins`, `disputes` or `ml_features`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["transactions", "logins", "disputes", "ml_features"]
+      - name: metric_date
+        description: The day measured (transaction, login, filed or as-of date).
+        data_tests:
+          - not_null
+      - name: metric_name
+        description: "`row_count`, `amount_median`, `amount_p95`, `fraud_share`, `null_share` or `failed_share`."
+        data_tests:
+          - not_null
+      - name: dimension
+        description: Transaction type, column name for null shares, or `all`.
+        data_tests:
+          - not_null
+      - name: metric_value
+        description: The measured value.
+        data_tests:
+          - not_null
+
+  - name: mon_daily_anomalies
+    description: >
+      **Grain: one row per source, metric, dimension and day**, scored against the same metric over
+      the previous 7 days. A day is an anomaly when its modified z-score (0.6745 x (value - median) /
+      MAD; Iglewicz & Hoaglin) exceeds 3.5 *and* it is at least 20% from the baseline median, with at
+      least 5 days of history. Days covered by the `known_events` seed are `expected`; anything else
+      outside the band is `anomaly` and fails the warning test `assert_no_unexplained_anomalies`.
+      Thresholds are vars in dbt_project.yml.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["source", "metric_name", "dimension", "metric_date"]
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('mon_daily_metrics')
+    columns:
+      - name: source
+        description: As in mon_daily_metrics.
+      - name: metric_name
+        description: As in mon_daily_metrics.
+      - name: dimension
+        description: As in mon_daily_metrics.
+      - name: metric_date
+        description: The day scored.
+      - name: metric_value
+        description: The day's value.
+      - name: baseline_days
+        description: How many of the previous 7 days had a value.
+      - name: baseline_median
+        description: Median of those days.
+      - name: baseline_mad
+        description: Median absolute deviation of those days from their median.
+      - name: modified_z_score
+        description: 0.6745 x (value - median) / MAD. Null when MAD is 0.
+      - name: status
+        description: "`insufficient_baseline`, `ok`, `expected` (explained by known_events) or `anomaly`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["insufficient_baseline", "ok", "expected", "anomaly"]
+      - name: known_event_id
+        description: The known event explaining an outlier day, if any.

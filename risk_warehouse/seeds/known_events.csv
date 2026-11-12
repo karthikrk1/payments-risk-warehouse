@@ -1,0 +1,10 @@
+event_id,source,metric_name,start_date,end_date,description
+E1-volume-lull,transactions,row_count,2024-01-03,2024-01-07,"Legitimate volume drops to 1-28k a day on Jan 3-5 (from ~450k) and recovers on Jan 6; the recovery stands out against a baseline that includes the lull."
+E1-volume-lull,logins,row_count,2024-01-03,2024-01-07,"Logins follow transactions (one per sending transaction plus failed attempts), so they show the same lull and recovery."
+E2-dispute-ramp,disputes,row_count,2024-01-01,2024-01-14,"Disputes are filed 1 hour to 14 days after their transaction and nothing exists before Jan 1, so daily disputes ramp up (20 to 338 a day) over the first 14 days."
+E3-volume-collapse,transactions,*,2024-01-18,2024-01-25,"From Jan 18 legitimate volume falls ~20x (to 10-55k a day) while fraud stays near-constant (~262 a day), so volumes, mix and fraud share all shift; the 7-day baseline needs until Jan 25 to adjust."
+E3-volume-collapse,logins,*,2024-01-18,2024-01-25,"Same collapse; with legitimate senders gone, the share of logins from fraudulent senders (who more often fail logins: planted signal) rises."
+E3-volume-collapse,ml_features,*,2024-01-18,2024-01-25,"Same collapse; fewer receivers have activity in the prior 7 days, so the receiver ratio is null more often."
+E4-final-day,transactions,*,2024-01-31,2024-01-31,"The simulation's last hours: 272 transactions, every one of them fraud."
+E4-final-day,logins,*,2024-01-31,2024-01-31,"Last day: only fraudulent senders log in, so the failed-login share jumps to 44%."
+E4-final-day,ml_features,*,2024-01-31,2024-01-31,"Last day: only fraud transactions, mostly to receivers with no recent activity."

@@ -1,11 +1,15 @@
-"""Check that two DuckDB warehouses hold identical data in their core and ml tables.
+"""Check that two DuckDB warehouses hold identical data in their core, ml and monitoring tables.
 
-Used to prove replay mode is correct: after replaying PaySim one batch at a time, every core and
-ml table must equal a one-shot full build, row for row. Exits non-zero, listing the differences,
-if not.
+Used to prove replay mode is correct: after replaying PaySim one batch at a time, every core, ml
+and monitoring table must equal a one-shot full build, row for row. Exits non-zero, listing the
+differences, if not.
 
 Usage:
-    python scripts/compare_warehouses.py EXPECTED.duckdb ACTUAL.duckdb [--schemas core ml]
+    python scripts/compare_warehouses.py EXPECTED.duckdb ACTUAL.duckdb
+        [--schemas core ml monitoring]
+
+ops (the run log of what each run saw at the time) is deliberately not compared: it differs
+between a replay and a one-shot build by design.
 """
 
 import argparse
@@ -63,7 +67,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("expected", type=Path, help="reference warehouse (e.g. a full build)")
     parser.add_argument("actual", type=Path, help="warehouse to check (e.g. a replay)")
-    parser.add_argument("--schemas", nargs="+", default=["core", "ml"])
+    parser.add_argument("--schemas", nargs="+", default=["core", "ml", "monitoring"])
     args = parser.parse_args()
 
     problems = compare(args.expected, args.actual, args.schemas)
