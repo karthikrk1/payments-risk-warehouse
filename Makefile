@@ -15,10 +15,10 @@ FLOW := PREFECT_SERVER_ANALYTICS_ENABLED=false $(PYTHON) flows/pipeline.py
 
 .DEFAULT_GOAL := help
 .PHONY: help setup data entities load ingest deps build docs lint format clean sample ci-build \
-	results flow replay ci-replay monitoring-export monitoring-page
+	results flow replay ci-replay monitoring-export monitoring-page triage triage-eval
 
 help: ## Show this help
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-17s %s\n", $$1, $$2}'
 
 setup: ## Create .venv (Python 3.12) and install dependencies and dev tools
 	uv venv --python 3.12
@@ -80,6 +80,12 @@ replay: ## Replay the full data day by day into warehouse/replay.duckdb; must eq
 
 ci-replay: ## Replay the sample week by week; must equal `make ci-build` (same as CI)
 	$(FLOW) --mode replay --dataset sample --batch-hours 168 --compare-to $(CI_WAREHOUSE)
+
+triage: ## Diagnose the last failed dbt build with Claude (read-only; needs ANTHROPIC_API_KEY)
+	$(PYTHON) -m triage
+
+triage-eval: ## Plant 9 known breakages and grade the triage agent on them (billed, about $1-2)
+	$(PYTHON) -m triage.eval.run
 
 lint: ## Ruff lint and format check (same as CI)
 	$(RUFF) check .

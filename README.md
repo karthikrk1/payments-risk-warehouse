@@ -8,8 +8,8 @@ account, device, login and dispute data into a tested **dimensional warehouse** 
 monitoring built in.
 
 > **Status:** Phase 1 complete: warehouse, point-in-time features, tests, CI and hosted docs.
-> Phase 2 under way: Prefect orchestration with day-by-day replay, custom data monitoring and its chart
-> page are done; an AI triage agent is next. See the [Roadmap](#roadmap).
+> Phase 2 under way: Prefect orchestration with day-by-day replay, custom data monitoring with a chart
+> page, and an AI triage agent for failed builds are done. See the [Roadmap](#roadmap).
 
 **Live docs and lineage graph:** <https://karthikrk1.github.io/payments-risk-warehouse/> (built from
 the CI sample, so row counts there are the sample's).
@@ -281,6 +281,38 @@ in November 2026 and passed without checking anything. The only override is a va
 "for test purposes only", it needed a dependency downgrade, and volume alerts fire on PaySim's own shape.
 The details are in [`docs/phase-2-plan.md`](docs/phase-2-plan.md).
 
+## AI triage of failed builds
+
+When `dbt build` fails, a triage agent ([`triage/`](triage/README.md)) explains why. It reads what
+dbt recorded (the failing tests, their compiled SQL, up to 20 of the rows they returned, the upstream
+models and macros), the code changed on the branch and the project rules, and asks Claude (Opus 5.5)
+for a structured diagnosis: **category** (code bug, data problem, test problem, environment), the
+cause and the file, the evidence, the smallest fix and one check that would confirm it.
+
+- **Read-only, best effort.** It changes nothing. The Prefect flow runs it when the quality gate
+  fails, logs the diagnosis as a `triage` artifact, and still fails with the gate's own error. With
+  no API key, a retired model or an API error it reports why and the pipeline is unaffected.
+  `make triage` runs it by hand.
+- **One call, context gathered in code.** Everything the model sees comes deterministically from
+  dbt's artifacts and git (`python -m triage --dry-run` prints it), so diagnoses are reproducible and
+  cost about $0.09 each.
+- **Evaluated, not assumed.** `make triage-eval` plants 9 realistic breakages in scratch copies of
+  the project (a leaky window macro, a balance column in the ML table, a removed cast that breaks a
+  contract, an inverted fraud flag, a deleted monitor, a duplicate raw row, logins dated before
+  signup, a wrong test, a missing raw table), checks that each really fails the build, and grades
+  every diagnosis on the category and on naming the actual cause.
+
+| Model | Passed | Cost per diagnosis |
+|---|---|---|
+| Opus 5.5 (default) | 9/9 | ~$0.09 |
+| Sonnet 5.5 | 8/9 | ~$0.05 |
+
+The evaluation found a real gap. On the first run both models misread logins moved back three
+years, because the context didn't include PaySim's anchor date; adding `dbt_project.yml` to the
+context fixed it for Opus. Sonnet still blamed the generator code, as it did every time on that case.
+The model is a setting (`TRIAGE_MODEL`); the evaluation is how to check a replacement when one is
+retired. Details, limits and every diagnosis: [`triage/README.md`](triage/README.md).
+
 ## Data quality
 
 - Primary-key, foreign-key and accepted-value tests on every model
@@ -396,6 +428,7 @@ make build     # dbt deps + dbt build
 make docs      # dbt docs: lineage graph and data dictionary
 make results   # run the analyses and print the README Results tables
 make flow      # or: the whole pipeline as a Prefect flow
+make triage    # optional: diagnose a failed build with Claude (needs ANTHROPIC_API_KEY)
 ```
 
 **Kaggle token:** on kaggle.com, Settings → API → Create New Token, then move the downloaded
@@ -441,11 +474,11 @@ it (12% vs 0.13%) so tests have cases to work on; results always come from the f
 - [x] Orchestration with Prefect: quality gate, retries, timeouts, day-by-day replay
 - [x] Data monitoring: daily metrics, robust anomaly scoring, known events, contracts, run log
 - [x] Monitoring chart page on GitHub Pages
+- [x] AI triage agent: diagnoses failed dbt builds with the Claude API, with an evaluation
 - [ ] Snowflake + Terraform: documented as an extension, not built
-- [ ] AI triage agent: classifies failed dbt tests and suggests fixes using the Claude API
 
 ## Tools
 
-Python · uv · dbt Core · DuckDB · Prefect · GitHub Actions · _(planned)_ Claude API
+Python · uv · dbt Core · DuckDB · Prefect · GitHub Actions · Claude API (Anthropic Python SDK)
 
 Built with AI-assisted development (Claude Code); see `CLAUDE.md` for the project conventions it follows.

@@ -11,8 +11,8 @@ extension rather than built (item 4).
 | # | Item | Status | Cost | Size |
 |---|---|---|---|---|
 | 1 | Orchestration with Prefect, with replay | Done (#17) | None | 1 PR |
-| 2 | Data monitoring: custom, in dbt (Elementary evaluated, not adopted) | Done (#18); chart page in review (`feat/monitoring-page`) | None | 2 PRs |
-| 3 | AI triage agent (Claude API) | Planned | Cents per run (API key) | 1–2 PRs |
+| 2 | Data monitoring: custom, in dbt (Elementary evaluated, not adopted) | Done (#18, #19) | None | 2 PRs |
+| 3 | AI triage agent (Claude API) | In review (`feat/triage-agent`) | ~$0.09 per diagnosis; ~$1–2 per evaluation run | 1 PR |
 | 4 | Snowflake + Terraform | Out of scope: documented as an extension | — | docs only |
 | 5 | Wrap-up: Snowflake extension note, karthikrk.com case study (one update for all of Phase 2) | After 1–3 | None | 1–2 PRs |
 
@@ -119,18 +119,33 @@ dark, 390 px phone width) before shipping.
 
 ## 3. AI triage agent (Claude API)
 
-**Goal:** when dbt tests fail, an agent reads the failing test, sample failing rows, lineage and recent
-code changes, then classifies the failure (data issue, code bug, expected) and suggests a fix, written
-to the Prefect run or as a PR comment.
+**Goal:** when `dbt build` fails, explain why: classify the failure, name the cause and file, show the
+evidence, suggest a fix and a check that would confirm it, where failures are reviewed.
 
-- **Evaluation built in:** the deliberate breakages already used to prove the leakage tests (a window
-  that includes the current hour, a balance column in the ML table) become an evaluation set for whether
-  the diagnoses are right.
-- Needs an Anthropic API key, stored as a GitHub secret; never committed.
-- Before building, check the current Claude models and API (don't rely on memory).
+**Built** (`triage/`, see [`triage/README.md`](../triage/README.md)):
+- **Scope: dbt failures only** (failing tests and erroring models), the gate's own trigger. Monitoring
+  warnings are statistical and already explained by `known_events`; they aren't sent.
+- **One call, context in code.** `context.py` collects the failing nodes from `run_results.json`, up to
+  20 failing rows (the test's query on a read-only connection), upstream models and project macros from
+  `manifest.json`, `dbt_project.yml`, the git diff against `origin/main`, and `CLAUDE.md`. `diagnose.py`
+  sends it to Claude with a fixed output schema: `code_bug` / `data_problem` / `test_problem` /
+  `environment`, plus confidence, cause, evidence, suspect files, fix and confirming check. (The
+  planned "expected" category was dropped: an expected change that fails a test is a test problem or a
+  code bug, and the label didn't help anyone act.)
+- **Where it shows up:** the Prefect flow runs it when the gate fails (log line, `triage` artifact,
+  `target/triage.md`), then fails with the gate's error as before. `make triage` runs it by hand. No PR
+  comments: CI runs on a 4,904-row sample and has no API key, and an outside contributor's PR could put
+  text in front of the model.
+- **Model:** Opus 5.5 at `high` effort, set by `TRIAGE_MODEL`. A retired model, missing key or API
+  error is reported and skipped; the pipeline is unaffected.
+- **Evaluation:** `make triage-eval` plants 9 breakages (5 code bugs, 2 data problems, 1 test problem, 1
+  environment) in scratch copies built on the sample, checks each fails the build, and grades the
+  category and whether the actual cause is named. Opus 5.5: 9/9; Sonnet 5.5: 8/9. The first run
+  exposed a context gap (no anchor date, so logins moved to 2021 looked normal), fixed by adding
+  `dbt_project.yml` to the context.
 
 **Done when:** the agent diagnoses the seeded failures correctly and its output appears where failures
-are reviewed.
+are reviewed. Met: 9/9 on Opus 5.5, in the flow run and `make triage`.
 
 ## 4. Snowflake + Terraform (documented, not built)
 

@@ -1,0 +1,1286 @@
+{
+  "cases": [
+    {
+      "case": "window_includes_current_hour",
+      "expected_category": "code_bug",
+      "failed_nodes": [
+        "test.risk_warehouse.assert_ml_features_use_only_prior_data",
+        "test.risk_warehouse.assert_receiver_velocity_matches_recount"
+      ],
+      "context_chars": 48301
+    },
+    {
+      "case": "balance_feature_added",
+      "expected_category": "code_bug",
+      "failed_nodes": [
+        "test.risk_warehouse.assert_ml_features_exclude_balances"
+      ],
+      "context_chars": 45301
+    },
+    {
+      "case": "contract_cast_removed",
+      "expected_category": "code_bug",
+      "failed_nodes": [
+        "model.risk_warehouse.ml_transaction_features"
+      ],
+      "context_chars": 44273
+    },
+    {
+      "case": "fraud_flag_inverted",
+      "expected_category": "code_bug",
+      "failed_nodes": [
+        "test.risk_warehouse.assert_fraud_only_in_transfer_and_cash_out"
+      ],
+      "context_chars": 30639
+    },
+    {
+      "case": "failed_share_monitor_removed",
+      "expected_category": "code_bug",
+      "failed_nodes": [
+        "test.risk_warehouse.assert_every_monitor_was_scored"
+      ],
+      "context_chars": 59421
+    },
+    {
+      "case": "duplicate_raw_transaction",
+      "expected_category": "data_problem",
+      "failed_nodes": [
+        "test.risk_warehouse.unique_stg_paysim__transactions_transaction_id.a876385293"
+      ],
+      "context_chars": 29679
+    },
+    {
+      "case": "login_before_signup",
+      "expected_category": "data_problem",
+      "failed_nodes": [
+        "test.risk_warehouse.assert_logins_after_account_signup"
+      ],
+      "context_chars": 24023
+    },
+    {
+      "case": "window_test_off_by_one_day",
+      "expected_category": "test_problem",
+      "failed_nodes": [
+        "test.risk_warehouse.assert_transaction_ts_within_paysim_window"
+      ],
+      "context_chars": 30965
+    },
+    {
+      "case": "disputes_table_missing",
+      "expected_category": "environment",
+      "failed_nodes": [
+        "model.risk_warehouse.stg_app__disputes"
+      ],
+      "context_chars": 23807
+    }
+  ],
+  "runs": [
+    {
+      "case": "window_includes_current_hour",
+      "model": "claude-opus-5-5",
+      "repeat": 0,
+      "seconds": 16.3,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 20966,
+      "output_tokens": 1198,
+      "estimated_cost_usd": 0.1078,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff to macros/prior_hours_window.sql changed the window frame end from `1 preceding` to `current row`. Every velocity window in int_account_velocity now includes the transaction's own hour. That leaks the current transaction into its features, which fails both the leakage test and the receiver velocity recount.",
+        "root_cause": "In macros/prior_hours_window.sql the frame was changed from `range between {{ hours }} preceding and 1 preceding` to `range between {{ hours }} preceding and current row`. int_account_velocity uses this macro for every window: activity_count_1h/24h/7d, received_count_24h/7d, received_amount_24h/7d and latest_source_step. Each window now sums the account's own current hour. That hour contains the transaction being scored and any same-hour transactions, whose order is unknown. The project rule is that windows end at the previous hour. As a result, latest_source_step equals the current paysim_step, so audit_*_velocity_ts equals as_of_ts and is no longer at least one hour earlier. The counts are also inflated by the current hour's own activity.",
+        "evidence": [
+          "The diff shows `-    range between {{ hours }} preceding and 1 preceding` replaced by `+    range between {{ hours }} preceding and current row` in macros/prior_hours_window.sql.",
+          "Leakage test sample: in every row audit_sender_velocity_ts and audit_receiver_velocity_ts equal as_of_ts exactly, e.g. txn 1752: as_of_ts 2024-01-09 08:00:00, both velocity audits 2024-01-09 08:00:00. The test requires them to be <= as_of_ts - 1 hour.",
+          "Other audit columns are fine. Signups are earlier, e.g. 2023-02-09. Logins are minutes earlier, e.g. 07:59:00. Disputes are null. Only the velocity group violates the rule.",
+          "The leakage test fails 4904 rows, which equals the whole CI sample (4,904 rows). Even senders with no history now get a non-null latest_source_step, because the frame includes their own hour.",
+          "Recount test sample: receiver_received_count_24h=1 and _7d=1 where the brute-force recount (steps step-168 .. step-1) gives 0. The extra 1 is the transaction itself counted in its own hour.",
+          "int_account_velocity's YAML description and comments still say 'excluding the hour itself (macros/prior_hours_window.sql)', so the macro now contradicts its documented contract.",
+          "The recount test's logic (between step-168 and step-1, with a step-24 lower bound for 24h) correctly encodes the 'before the current hour' rule, so the test is right."
+        ],
+        "suspect_files": [
+          "risk_warehouse/macros/prior_hours_window.sql",
+          "risk_warehouse/models/intermediate/int_account_velocity.sql"
+        ],
+        "suggested_fix": "Revert the macro frame to `range between {{ hours }} preceding and 1 preceding` in risk_warehouse/macros/prior_hours_window.sql. The `coalesce(..., 0)` in int_account_velocity already handles the empty frame this produces. Leave both tests unchanged; they are correct and caught the leak as intended.",
+        "confirming_check": "After reverting, run `dbt build --select int_account_velocity+ --target ci`; both tests should return 0 rows. Before reverting, this query should return 0, showing every velocity row's audit step is its own step: `select count(*) from ci.intermediate.int_account_velocity where latest_source_step is distinct from paysim_step;`"
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "window_includes_current_hour",
+      "model": "claude-opus-5-5",
+      "repeat": 1,
+      "seconds": 12.9,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 20966,
+      "output_tokens": 968,
+      "estimated_cost_usd": 0.1032,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff to macros/prior_hours_window.sql changed the window frame end from `1 preceding` to `current row`. Every velocity window in int_account_velocity now includes the transaction's own hour. This leaks same-hour activity (including the transaction itself) into the ML features, which breaks both the leakage test and the brute-force recount.",
+        "root_cause": "macros/prior_hours_window.sql now renders `range between {{ hours }} preceding and current row` (was `... and 1 preceding`). int_account_velocity uses this macro for every count, amount and `latest_source_step`, so each row now covers the current paysim_step. In ml_transaction_features, audit_*_velocity_ts = start + (latest_source_step - 1) hours, which now equals as_of_ts itself. receiver_received_count_24h/7d also count the current transaction. This violates the project rule that windows end at the previous hour.",
+        "evidence": [
+          "Diff: `-    range between {{ hours }} preceding and 1 preceding` / `+    range between {{ hours }} preceding and current row` in macros/prior_hours_window.sql.",
+          "Leakage test sample: audit_sender_velocity_ts and audit_receiver_velocity_ts equal as_of_ts exactly on every row, e.g. tx 1752 as_of_ts 2024-01-09 08:00:00, both velocity audits 2024-01-09 08:00:00. The other audits (signup, login 07:59, dispute null) are all earlier.",
+          "4904 failing rows = the entire CI sample (4,904 rows), consistent with every row's sender window now including its own transaction's hour.",
+          "Recount sample: features receiver_received_count_24h = 1 and _7d = 1 while recounted values are 0 and 0. The only 'prior' transaction counted is the current one.",
+          "Downstream mon_daily_metrics / mon_daily_anomalies were skipped as a consequence, not as an independent failure."
+        ],
+        "suspect_files": [
+          "risk_warehouse/macros/prior_hours_window.sql",
+          "risk_warehouse/models/intermediate/int_account_velocity.sql"
+        ],
+        "suggested_fix": "Revert the macro frame end to `range between {{ hours }} preceding and 1 preceding` in risk_warehouse/macros/prior_hours_window.sql. This restores windows that exclude the current hour, as documented in int_account_velocity and CLAUDE.md. The tests are correct and must not be changed.",
+        "confirming_check": "After reverting, run `dbt build --select int_account_velocity+` on the ci target and confirm both tests pass. Before the fix, run this query, which should return 4904 on the broken build and 0 after the fix: `select count(*) from ci.ml.ml_transaction_features where audit_sender_velocity_ts = as_of_ts or audit_receiver_velocity_ts = as_of_ts;`"
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "window_includes_current_hour",
+      "model": "claude-sonnet-5-5",
+      "repeat": 0,
+      "seconds": 8.8,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 20966,
+      "output_tokens": 1179,
+      "estimated_cost_usd": 0.0537,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff changed the window frame in macros/prior_hours_window.sql from `1 preceding` to `current row`. The velocity windows now include the transaction's own hour, so both the leakage test and the recount test fail on all 4,904 rows.",
+        "root_cause": "macros/prior_hours_window.sql now ends the frame at `current row` instead of `1 preceding`. In int_account_velocity (grain: account per active hour), the RANGE frame therefore includes the current hour's own activity. Every receiver's received_count_24h and received_count_7d include the current transaction, which is why the features show 1 where the brute-force recount (paysim_step between step-168 and step-1) shows 0. The audit column latest_source_step = max(paysim_step) over the same window equals the current step, so audit_sender_velocity_ts and audit_receiver_velocity_ts equal as_of_ts. The test requires them to be <= as_of_ts - 1 hour, so it fails. This is real same-hour leakage, not a test bug.",
+        "evidence": [
+          "Diff: `range between {{ hours }} preceding and 1 preceding` -> `range between {{ hours }} preceding and current row` in macros/prior_hours_window.sql",
+          "Leakage test sample: audit_sender_velocity_ts and audit_receiver_velocity_ts equal as_of_ts exactly (e.g. tx 1752: 2024-01-09 08:00:00 vs as_of_ts 2024-01-09 08:00:00). The test needs them <= as_of_ts - 1h.",
+          "Other audit columns in the sample are fine: signup timestamps and login timestamps are before as_of_ts and the dispute audit is None. Only the velocity audits violate the rule.",
+          "Recount test sample: features report receiver_received_count_24h = 1 and 7d = 1, while the independent recount (which excludes the current step) gives 0 for every sampled row. The extra 1 is the transaction itself.",
+          "Failing counts of 4,904 equal the full CI sample size (4,904 rows). Every row's own hour is counted, so every row fails the leakage test. The 3,809 recount mismatches are the rows where the receiver has no real prior history.",
+          "The model docs for int_account_velocity state that windows exclude the hour itself, and CLAUDE.md requires windows to end at the previous hour."
+        ],
+        "suspect_files": [
+          "risk_warehouse/macros/prior_hours_window.sql",
+          "risk_warehouse/models/intermediate/int_account_velocity.sql",
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql"
+        ],
+        "suggested_fix": "Revert the macro to `range between {{ hours }} preceding and 1 preceding`. Keep both tests as they are; they are correct and caught a real leak. Then rebuild with `dbt build --select prior_hours_window+ int_account_velocity+ ml_transaction_features+`. The skipped mon_* nodes should run again once the upstream failures clear.",
+        "confirming_check": "After reverting, run `dbt build --select int_account_velocity+ ml_transaction_features+ assert_ml_features_use_only_prior_data assert_receiver_velocity_matches_recount` and confirm both tests return 0 rows. To confirm before the revert, run `select count(*) from ml.ml_transaction_features where audit_receiver_velocity_ts = as_of_ts;`. It should return roughly the number of rows with a non-null receiver velocity audit, which equals the failing leakage rows."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "window_includes_current_hour",
+      "model": "claude-sonnet-5-5",
+      "repeat": 1,
+      "seconds": 9.3,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 20966,
+      "output_tokens": 1199,
+      "estimated_cost_usd": 0.0539,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff changed the frame in macros/prior_hours_window.sql from `... and 1 preceding` to `... and current row`. The velocity windows now include the transaction's own hour, so both the leakage test and the receiver velocity recount fail on all 4,904 sample rows.",
+        "root_cause": "In macros/prior_hours_window.sql the frame end moved from `1 preceding` to `current row`. int_account_velocity uses this macro for every window (activity, received_count, received_amount and the latest_source_step audit). Each account-hour row therefore now counts its own hour's activity. The transaction is counted as its own history: receiver_received_count_24h and _7d are 1 where the brute-force recount (paysim_step between step-168 and step-1) gives 0. latest_source_step equals the current step, so audit_sender_velocity_ts and audit_receiver_velocity_ts equal as_of_ts. The leakage test requires them to be <= as_of_ts - 1 hour, so it fails.",
+        "evidence": [
+          "Diff: `range between {{ hours }} preceding and 1 preceding` changed to `range between {{ hours }} preceding and current row` in macros/prior_hours_window.sql.",
+          "Leakage sample: audit_sender_velocity_ts and audit_receiver_velocity_ts equal as_of_ts on every row (e.g. tx 1752: both 2024-01-09 08:00:00 = as_of_ts), but the test requires <= as_of_ts - 1 hour.",
+          "The other audit columns in the sample look fine: audit_login_ts is 1-30 minutes before as_of_ts and audit_dispute_ts is None, and the signup timestamps are earlier (a few signups are only hours before, but still before as_of_ts). Only the velocity audits violate the test.",
+          "Recount sample: features show receiver_received_count_24h=1 and _7d=1 while the recount shows 0 on every row, a consistent +1 equal to the transaction's own hour.",
+          "int_account_velocity.sql builds all of its windows, including max(paysim_step) as latest_source_step, from prior_hours_window, so one macro change explains both failing tests.",
+          "The failing row count (4904) equals the sample's total row count, so every row is affected, as expected for a frame bug rather than a data issue.",
+          "Downstream mon_daily_* nodes were skipped only because the upstream nodes failed, so they are not independent failures."
+        ],
+        "suspect_files": [
+          "risk_warehouse/macros/prior_hours_window.sql",
+          "risk_warehouse/models/intermediate/int_account_velocity.sql",
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql"
+        ],
+        "suggested_fix": "Revert the frame in risk_warehouse/macros/prior_hours_window.sql to `range between {{ hours }} preceding and 1 preceding`. Do not change or weaken either test: both are correct and caught a real leak. Then rerun `dbt build --select prior_hours_window+ int_account_velocity+` (or a full build) so the skipped monitoring models and tests also run.",
+        "confirming_check": "Revert the macro and run `dbt build --select int_account_velocity+ ml_transaction_features+ assert_ml_features_use_only_prior_data assert_receiver_velocity_matches_recount`. Both tests should return 0 rows. To check beforehand, compare compiled SQL: `select count(*) from ci.ml.ml_transaction_features where audit_receiver_velocity_ts = as_of_ts` should be 4904 now and 0 after the revert."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "balance_feature_added",
+      "model": "claude-opus-5-5",
+      "repeat": 0,
+      "seconds": 9.7,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 18377,
+      "output_tokens": 938,
+      "estimated_cost_usd": 0.0923,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The recent change added `transactions.sender_balance_before_amount` as a column of ml_transaction_features (and its contract YAML). The leakage test assert_ml_features_exclude_balances correctly flags it as a forbidden balance column.",
+        "root_cause": "In models/marts/ml/ml_transaction_features.sql the diff added `+    transactions.sender_balance_before_amount,` under \"Transaction (known at decision time)\", and models/marts/ml/_ml__models.yml added a matching contract column. The project rules say \"No balance column may feed an ML feature, the `*_before_amount` ones included\", because the dataset author states that fraud transactions were cancelled and oldbalanceOrg etc. must not be used for fraud detection. The test checks the built table's real columns and returns one row per forbidden column, so it returns exactly 'sender_balance_before_amount'. The test is correct; the model change violates a project rule. The mon_daily_metrics skips come from a separate upstream node failure and are not explained by this test; check them separately.",
+        "evidence": [
+          "Failing row: forbidden_column = 'sender_balance_before_amount'.",
+          "Diff to ml_transaction_features.sql adds `transactions.sender_balance_before_amount,` to the select list.",
+          "Diff to _ml__models.yml adds a contract column `sender_balance_before_amount` (decimal(18,2)).",
+          "CLAUDE.md: \"No balance column may feed an ML feature, the `*_before_amount` ones included\" and \"no column containing `balance` or `mismatch` (assert_ml_features_exclude_balances)\".",
+          "The stg_paysim__transactions description repeats the warning: none of the four balance columns should be used for fraud detection."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql",
+          "risk_warehouse/models/marts/ml/_ml__models.yml"
+        ],
+        "suggested_fix": "Revert the change. Remove the `transactions.sender_balance_before_amount,` line from ml_transaction_features.sql and the matching `sender_balance_before_amount` column entry from _ml__models.yml so the enforced contract still matches. Do not change or relax the test; it is correct. If balance data is needed, use it only in analysis or data-quality models, not in the ML feature table.",
+        "confirming_check": "After the revert, run `dbt build --select ml_transaction_features+` and check that assert_ml_features_exclude_balances passes. Also run `select column_name from information_schema.columns where table_schema='ml' and table_name='ml_transaction_features' and (column_name ilike '%balance%' or column_name ilike '%mismatch%');` and confirm it returns zero rows (it currently returns sender_balance_before_amount)."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "balance_feature_added",
+      "model": "claude-opus-5-5",
+      "repeat": 1,
+      "seconds": 10.8,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 18377,
+      "output_tokens": 1040,
+      "estimated_cost_usd": 0.0943,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The recent diff added `transactions.sender_balance_before_amount` as a column of ml_transaction_features (and its contract YAML). This breaks the project's leakage rule that no balance column may be an ML feature, so assert_ml_features_exclude_balances correctly returns that one column.",
+        "root_cause": "In models/marts/ml/ml_transaction_features.sql the change added `transactions.sender_balance_before_amount,` under \"Transaction (known at decision time)\". A matching contract entry was added in models/marts/ml/_ml__models.yml (`- name: sender_balance_before_amount`, data_type decimal(18,2)). CLAUDE.md says \"No balance column may feed an ML feature, the `*_before_amount` ones included\", because PaySim cancelled fraudulent transactions, so the dataset's author says these columns must not be used for fraud detection. The test reads the built table's real columns and flags any name containing 'balance'. It returns exactly this column. The test and the data are correct; the model change violates the rule.",
+        "evidence": [
+          "Failing row: forbidden_column = 'sender_balance_before_amount' (1 row, test expects 0).",
+          "Diff to ml_transaction_features.sql: `+    transactions.sender_balance_before_amount,`",
+          "Diff to _ml__models.yml adds a contract column `sender_balance_before_amount` (decimal(18,2)).",
+          "The model's own header comment says: \"no balance column, and nothing derived from one, is a feature\".",
+          "The stg_paysim__transactions description says none of the four balance columns should be used for fraud detection, \"that includes the `*_before_amount` balances\".",
+          "CLAUDE.md, ML feature table rules: \"no column containing `balance` or `mismatch` (`assert_ml_features_exclude_balances`)\".",
+          "mon_daily_metrics and its downstream nodes were skipped because that model failed upstream. That is a separate failure; this diagnosis covers only the leakage test."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql",
+          "risk_warehouse/models/marts/ml/_ml__models.yml"
+        ],
+        "suggested_fix": "Revert both parts of the diff. Remove `transactions.sender_balance_before_amount,` from ml_transaction_features.sql and remove the `sender_balance_before_amount` column entry from _ml__models.yml, so the enforced contract still matches the model. Do not weaken or delete the test: it is correct and is doing its job. If the balance is needed for analysis, use it from stg_paysim__transactions or fct_transactions, not the ML feature table.",
+        "confirming_check": "Run: select column_name from information_schema.columns where table_schema = 'ml' and table_name = 'ml_transaction_features' and (column_name ilike '%balance%' or column_name ilike '%mismatch%'); it returns sender_balance_before_amount now and should return no rows after the revert. Then run `dbt build --select ml_transaction_features+` and confirm assert_ml_features_exclude_balances passes."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "balance_feature_added",
+      "model": "claude-sonnet-5-5",
+      "repeat": 0,
+      "seconds": 7.7,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 18377,
+      "output_tokens": 963,
+      "estimated_cost_usd": 0.0464,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The leakage test assert_ml_features_exclude_balances fails because a recent change added the raw balance column sender_balance_before_amount to the ML feature table, which project rules forbid.",
+        "root_cause": "The diff to models/marts/ml/ml_transaction_features.sql adds `transactions.sender_balance_before_amount` to the final select, under the 'Transaction (known at decision time)' block, and _ml__models.yml adds a matching contract column so the contract still builds. Project rules say no balance column may feed an ML feature, the *_before_amount balances included, because PaySim cancels fraudulent transactions and the author says the balances must not be used for fraud detection. The test inspects the built table's real columns for names containing 'balance' or 'mismatch' and correctly flags this column. The upstream models are fine; stg_paysim__transactions legitimately keeps the balance for analysis only.",
+        "evidence": [
+          "The test returns exactly one row: forbidden_column = sender_balance_before_amount, so one forbidden column is in ml.ml_transaction_features.",
+          "The diff adds `transactions.sender_balance_before_amount` to ml_transaction_features.sql and a matching `sender_balance_before_amount` entry (decimal(18,2)) in _ml__models.yml.",
+          "CLAUDE.md: 'No balance column may feed an ML feature, the `*_before_amount` ones included' and 'no column containing `balance` or `mismatch` (`assert_ml_features_exclude_balances`)'.",
+          "The model description also states the leakage rule (2) that no balance column is a feature, including *_before_amount.",
+          "The 15 skipped nodes (mon_daily_metrics etc.) are only downstream of the failed test's dependency chain and are not separate problems."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql",
+          "risk_warehouse/models/marts/ml/_ml__models.yml"
+        ],
+        "suggested_fix": "Revert the change: remove `transactions.sender_balance_before_amount,` from the select in ml_transaction_features.sql and delete the sender_balance_before_amount column entry from _ml__models.yml so the contract matches. Do not weaken or edit the test; it is correct. If a balance-derived signal is wanted, it needs a design decision that overrides the project's stated rule, not a quiet column addition.",
+        "confirming_check": "Run `select column_name from information_schema.columns where table_schema='ml' and table_name='ml_transaction_features' and (column_name ilike '%balance%' or column_name ilike '%mismatch%');` which should return sender_balance_before_amount before the fix and zero rows after. Then re-run `dbt build --select ml_transaction_features+ assert_ml_features_exclude_balances` and confirm the test passes and the skipped monitoring nodes run."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "balance_feature_added",
+      "model": "claude-sonnet-5-5",
+      "repeat": 1,
+      "seconds": 7.2,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 18377,
+      "output_tokens": 936,
+      "estimated_cost_usd": 0.0461,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "assert_ml_features_exclude_balances fails because a recent change added sender_balance_before_amount as a column of ml_transaction_features, which violates the project's no-balance-columns leakage rule.",
+        "root_cause": "The diff adds `transactions.sender_balance_before_amount` to the select list in models/marts/ml/ml_transaction_features.sql, and declares it in models/marts/ml/_ml__models.yml (data_type decimal(18,2)). CLAUDE.md says no balance column may feed an ML feature, the *_before_amount ones included, because PaySim's author says fraud transactions are cancelled and oldbalanceOrg etc. must not be used for fraud detection. The test inspects the built table's real columns for names containing 'balance' and correctly returns the one offender. The other 15 skipped nodes (mon_daily_metrics and its tests) were skipped only because this test failed upstream, so they are not separate problems.",
+        "evidence": [
+          "Test output returns exactly one row: forbidden_column = sender_balance_before_amount",
+          "Diff adds `transactions.sender_balance_before_amount,` under '-- Transaction (known at decision time)' in ml_transaction_features.sql",
+          "Diff adds a matching column entry to _ml__models.yml, so the contract is consistent and the model builds, but the leakage rule is broken",
+          "CLAUDE.md: 'No balance column may feed an ML feature, the `*_before_amount` ones included.'",
+          "The model's own header comment says 'no balance column, and nothing derived from one, is a feature'",
+          "Skipped mon_daily_* nodes are downstream-skip casualties, not independent failures"
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql",
+          "risk_warehouse/models/marts/ml/_ml__models.yml",
+          "risk_warehouse/tests/assert_ml_features_exclude_balances.sql"
+        ],
+        "suggested_fix": "Revert the change: remove `transactions.sender_balance_before_amount,` from ml_transaction_features.sql and delete the sender_balance_before_amount entry from _ml__models.yml so the contract matches. Do not weaken or edit the test; it is correct. If the balance is wanted for analysis, query it from stg_paysim__transactions or fct_transactions instead. Then rerun `dbt build --select ml_transaction_features+` and the downstream monitoring models will run.",
+        "confirming_check": "Run: select column_name from information_schema.columns where table_schema='ml' and table_name='ml_transaction_features' and lower(column_name) like '%balance%'; it should return sender_balance_before_amount before the fix and zero rows after, and `dbt test --select assert_ml_features_exclude_balances` should then pass."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "contract_cast_removed",
+      "model": "claude-opus-5-5",
+      "repeat": 0,
+      "seconds": 14.1,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 18500,
+      "output_tokens": 1125,
+      "estimated_cost_usd": 0.0965,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff removed the explicit `cast(... as decimal(18, 2))` on `receiver_received_amount_7d` in models/marts/ml/ml_transaction_features.sql. The column now carries DuckDB's widened SUM type DECIMAL(38,2), which breaks the enforced contract (DECIMAL(18,2)). The model errored and 36 downstream nodes were skipped.",
+        "root_cause": "In models/marts/ml/ml_transaction_features.sql the line `cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d,` was changed to `receiver_velocity.received_amount_7d as receiver_received_amount_7d,`. The upstream value comes from int_account_velocity's `coalesce(sum(received_amount) over (...), 0)`. DuckDB widens that SUM over decimal(18,2) to DECIMAL(38,2). Without the cast, the column type no longer matches the contract's `data_type: decimal(18,2)`. The project rule says: \"Cast aggregates explicitly; DuckDB's SUM returns HUGEINT / DECIMAL(38,2), which aren't portable.\" The model's own comment says the same.",
+        "evidence": [
+          "Contract error: `receiver_received_amount_7d | DECIMAL(38,2) | DECIMAL(18,2) | data type mismatch`. It is the only mismatched column.",
+          "The diff shows `-    cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d,` replaced by `+    receiver_velocity.received_amount_7d as receiver_received_amount_7d,`.",
+          "The sibling column still has its cast and passes the contract: `cast(receiver_velocity.received_amount_24h as decimal(18, 2)) as receiver_received_amount_24h`.",
+          "int_account_velocity computes `coalesce(sum(received_amount) over ({{ prior_hours_window(168) }}), 0) as received_amount_7d`, an unwidened SUM.",
+          "The model comment says: 'DuckDB widens SUM results to HUGEINT / DECIMAL(38,2) ... The model contract pins these.'",
+          "Every skipped node (ml tests, mon_daily_metrics, mon_daily_anomalies) is downstream of ml_transaction_features, so they are a consequence of this error, not separate failures."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql"
+        ],
+        "suggested_fix": "Restore the explicit cast in models/marts/ml/ml_transaction_features.sql: `cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d,`. Leave the contract YAML at decimal(18,2). That type is the project's portable money type, so the contract is correct and should not be widened to match.",
+        "confirming_check": "After restoring the cast, run `dbt build --select ml_transaction_features+ --target ci`. It should build, and the 36 skipped nodes should run and pass. To see the widened type directly, run in DuckDB: `select typeof(received_amount_7d) from intermediate.int_account_velocity limit 1;` and expect `DECIMAL(38,2)`."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "contract_cast_removed",
+      "model": "claude-opus-5-5",
+      "repeat": 1,
+      "seconds": 13.3,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 18500,
+      "output_tokens": 1096,
+      "estimated_cost_usd": 0.0959,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff removed the explicit cast on receiver_received_amount_7d in ml_transaction_features.sql. DuckDB's SUM window in int_account_velocity returns DECIMAL(38,2), while the enforced contract pins DECIMAL(18,2). The contract check fails at compile time, and that error skips 36 downstream nodes.",
+        "root_cause": "In models/marts/ml/ml_transaction_features.sql the line `cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d,` was changed to `receiver_velocity.received_amount_7d as receiver_received_amount_7d,`. The column comes from `coalesce(sum(received_amount) over (...), 0)` in int_account_velocity, and DuckDB widens that SUM to DECIMAL(38,2). The model contract still declares data_type DECIMAL(18,2), so assert_columns_equivalent raises 'data type mismatch'. This also breaks the project rule 'Cast aggregates explicitly; DuckDB's SUM returns HUGEINT / DECIMAL(38,2), which aren't portable', and the model's own comment says 'The model contract pins these.'",
+        "evidence": [
+          "dbt error: `receiver_received_amount_7d | DECIMAL(38,2) | DECIMAL(18,2) | data type mismatch` from the enforced contract on ml_transaction_features.",
+          "Diff: `-    cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d,` / `+    receiver_velocity.received_amount_7d as receiver_received_amount_7d,`.",
+          "The neighbouring column keeps its cast and does not appear in the mismatch: `cast(receiver_velocity.received_amount_24h as decimal(18, 2)) as receiver_received_amount_24h`.",
+          "Upstream int_account_velocity: `coalesce(sum(received_amount) over ({{ prior_hours_window(168) }}), 0) as received_amount_7d`. A SUM over decimal(18,2) widens to DECIMAL(38,2) in DuckDB.",
+          "The 36 skipped nodes are all tests on ml_transaction_features and the monitoring models downstream of it, which is consistent with a single compile-time failure."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql"
+        ],
+        "suggested_fix": "Restore the explicit cast in models/marts/ml/ml_transaction_features.sql: `cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d,`. Do not widen the contract to DECIMAL(38,2); the project rules require portable, explicitly cast aggregates.",
+        "confirming_check": "After restoring the cast, run `dbt build --select ml_transaction_features+` against the ci target; the contract check should pass and the 36 skipped nodes should run. To confirm the widened type beforehand, run `select typeof(received_amount_7d) from intermediate.int_account_velocity limit 1;` in warehouse/ci.duckdb, which should return DECIMAL(38,2)."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "contract_cast_removed",
+      "model": "claude-sonnet-5-5",
+      "repeat": 0,
+      "seconds": 7.8,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 18500,
+      "output_tokens": 1088,
+      "estimated_cost_usd": 0.0479,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "ml_transaction_features fails its enforced model contract: receiver_received_amount_7d is built as DECIMAL(38,2) but the contract declares DECIMAL(18,2). All downstream tests and monitoring models were skipped.",
+        "root_cause": "The diff in risk_warehouse/models/marts/ml/ml_transaction_features.sql removed the explicit cast on receiver_received_amount_7d: `cast(receiver_velocity.received_amount_7d as decimal(18, 2))` became bare `receiver_velocity.received_amount_7d as receiver_received_amount_7d`. The value comes from int_account_velocity, where `coalesce(sum(received_amount) over (...), 0)` makes DuckDB widen SUM over decimal(18,2) to DECIMAL(38,2). With no cast, the model's column type is DECIMAL(38,2) while the YAML contract pins DECIMAL(18,2). The sibling column receiver_received_amount_24h still has its cast and passes the contract check. This also breaks the project rule 'Cast aggregates explicitly'.",
+        "evidence": [
+          "Contract error table: receiver_received_amount_7d definition_type DECIMAL(38,2) vs contract_type DECIMAL(18,2), reason 'data type mismatch' (the only mismatching column).",
+          "Diff removes the line `cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d` and replaces it with the uncast column.",
+          "Compiled SQL still shows `cast(receiver_velocity.received_amount_24h as decimal(18, 2))` and a comment saying DuckDB widens SUM to HUGEINT / DECIMAL(38,2) and the contract pins these types.",
+          "int_account_velocity computes received_amount_7d as `coalesce(sum(received_amount) over (...), 0)`, which yields DECIMAL(38,2) in DuckDB.",
+          "CLAUDE.md: 'Cast aggregates explicitly; DuckDB's SUM returns HUGEINT / DECIMAL(38,2), which aren't portable.' The 36 skipped nodes are all downstream of this failed model."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql",
+          "risk_warehouse/models/intermediate/int_account_velocity.sql"
+        ],
+        "suggested_fix": "Restore the explicit cast in risk_warehouse/models/marts/ml/ml_transaction_features.sql: `cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d`. Leave the contract YAML at decimal(18,2). Then rerun `dbt build --select ml_transaction_features+` so the skipped tests and monitoring models run.",
+        "confirming_check": "Run `dbt build --select ml_transaction_features+` and confirm the contract check passes and the skipped nodes run. Alternatively, in DuckDB: `select typeof(received_amount_7d) from ci.intermediate.int_account_velocity limit 1;` should return DECIMAL(38,2), showing the uncast value cannot match the contract."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "contract_cast_removed",
+      "model": "claude-sonnet-5-5",
+      "repeat": 1,
+      "seconds": 8.2,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 18500,
+      "output_tokens": 1188,
+      "estimated_cost_usd": 0.0489,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "ml_transaction_features fails its enforced model contract: receiver_received_amount_7d is built as DECIMAL(38,2) but the contract declares DECIMAL(18,2). The model errors and 36 downstream nodes are skipped.",
+        "root_cause": "The diff in risk_warehouse/models/marts/ml/ml_transaction_features.sql removed the explicit cast on receiver_received_amount_7d: `cast(receiver_velocity.received_amount_7d as decimal(18, 2))` became bare `receiver_velocity.received_amount_7d`. That column comes from int_account_velocity, where `coalesce(sum(received_amount) over (...), 0)` is a SUM, and DuckDB widens SUM of DECIMAL(18,2) to DECIMAL(38,2). The model's YAML contract pins the column to DECIMAL(18,2), so dbt's assert_columns_equivalent fails at compile time with 'data type mismatch'. The sibling column receiver_received_amount_24h keeps its cast and passes, which is the same pattern. This also breaks the project rule 'Cast aggregates explicitly; DuckDB SUM returns HUGEINT / DECIMAL(38,2)'.",
+        "evidence": [
+          "Contract error table: receiver_received_amount_7d definition_type DECIMAL(38,2) vs contract_type DECIMAL(18,2), the only mismatched column",
+          "Diff: `-    cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d,` / `+    receiver_velocity.received_amount_7d as receiver_received_amount_7d,`",
+          "Compiled SQL still casts receiver_received_amount_24h as decimal(18, 2) but not the 7d column",
+          "int_account_velocity computes received_amount_7d with coalesce(sum(received_amount) over (...), 0), and DuckDB widens SUM to DECIMAL(38,2)",
+          "CLAUDE.md: contracts are enforced on ml_transaction_features, and aggregates must be cast explicitly",
+          "All 36 skipped nodes are tests on ml_transaction_features and the monitoring models downstream of it, so this single failure explains the whole run"
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/marts/ml/ml_transaction_features.sql",
+          "risk_warehouse/models/marts/ml/ml_transaction_features.yml",
+          "risk_warehouse/models/intermediate/int_account_velocity.sql"
+        ],
+        "suggested_fix": "Restore the cast in risk_warehouse/models/marts/ml/ml_transaction_features.sql: `cast(receiver_velocity.received_amount_7d as decimal(18, 2)) as receiver_received_amount_7d,`. Keep the contract at DECIMAL(18,2); do not widen it to DECIMAL(38,2), since that type is an accident of DuckDB and not portable. Then rerun `dbt build --select ml_transaction_features+` so the skipped tests run.",
+        "confirming_check": "Run `dbt build --select ml_transaction_features+` after restoring the cast: the contract check should pass and the 36 skipped nodes should execute. Alternatively, in DuckDB run `select typeof(received_amount_7d) from intermediate.int_account_velocity limit 1;` to see DECIMAL(38,2) before the cast, and `describe ml.ml_transaction_features;` afterwards to see DECIMAL(18,2)."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "fraud_flag_inverted",
+      "model": "claude-opus-5-5",
+      "repeat": 0,
+      "seconds": 10.0,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 13749,
+      "output_tokens": 1017,
+      "estimated_cost_usd": 0.0753,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff to stg_paysim__transactions.sql inverted the fraud label: `isFraud = 1 as is_fraud` became `isFraud = 0 as is_fraud`. Every legitimate row is now marked as fraud, so payment and cash_in rows show up as fraud and the test fails with 2,181 rows.",
+        "root_cause": "In risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql, the renamed CTE now has `isFraud = 0 as is_fraud`. This flags non-fraud rows as true and real fraud rows as false. PaySim has fraud only in TRANSFER and CASH_OUT, so the inverted flag puts is_fraud = true on every payment, cash_in and debit row. assert_fraud_only_in_transfer_and_cash_out catches exactly that. The same inversion would also corrupt the label in fct_transactions and ml_transaction_features, along with the fraud metrics downstream.",
+        "evidence": [
+          "Diff: `-        isFraud = 1 as is_fraud,` / `+        isFraud = 0 as is_fraud,` is the only change since main.",
+          "Sample failing rows are all non-fraud types: transaction_id 7 'payment', 9 'cash_in', 10 'cash_in', 13 'payment', and so on. PaySim never simulates fraud on these types.",
+          "The failing transaction_ids are dense low IDs (7, 9, 10, 12, 13, 14...). That fits most rows being flagged, not a rare source anomaly.",
+          "The 2,181 failing rows are roughly the share of the 4,904-row CI sample that is payment/cash_in/debit. With 12% fraud in the sample, the remaining non-fraud transfer/cash_out rows are also mislabeled but are excluded by the test's type filter.",
+          "The test SQL is correct and matches the documented PaySim property in CLAUDE.md: 'Fraud only occurs in TRANSFER and CASH_OUT types.'"
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql"
+        ],
+        "suggested_fix": "Revert the line to `isFraud = 1 as is_fraud,` in risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql, then run `dbt build --select stg_paysim__transactions+` against the ci target. The test is correct and should not be changed.",
+        "confirming_check": "Run `select transaction_type, is_fraud, count(*) from ci.staging.stg_paysim__transactions group by all order by all;` and compare it with `select type, isFraud, count(*) from ci.raw.paysim_transactions group by all order by all;` (adjust the raw table name to the paysim source). The staging is_fraud = true counts should exactly equal the raw isFraud = 0 counts, including every payment/cash_in/debit row. After the revert, is_fraud = true should appear only for transfer/cash_out, and the test should return 0 rows."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "fraud_flag_inverted",
+      "model": "claude-opus-5-5",
+      "repeat": 1,
+      "seconds": 10.4,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 13749,
+      "output_tokens": 1031,
+      "estimated_cost_usd": 0.0756,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff to stg_paysim__transactions.sql inverted the fraud label (`isFraud = 1` became `isFraud = 0`). Every legitimate transaction is now marked is_fraud = true, so payment and cash_in rows show up as fraud and the test returns 2181 rows.",
+        "root_cause": "In risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql, the line `isFraud = 0 as is_fraud,` (changed from `isFraud = 1 as is_fraud,`) sets is_fraud to true for non-fraud rows and false for real fraud. PaySim only has fraud on TRANSFER and CASH_OUT, so the inverted label makes every legitimate payment, cash_in and debit row 'fraud'. assert_fraud_only_in_transfer_and_cash_out correctly catches this. Every downstream label (fct_transactions.is_fraud, ml_transaction_features.is_fraud) would also be inverted.",
+        "evidence": [
+          "The code diff changes exactly one line: `-        isFraud = 1 as is_fraud,` / `+        isFraud = 0 as is_fraud,`.",
+          "All sample failing rows are `payment` or `cash_in` (e.g. transaction_id 7 payment, 9 cash_in, 10 cash_in). PaySim never generates fraud for these types (CLAUDE.md: 'Fraud only occurs in TRANSFER and CASH_OUT types').",
+          "Very low transaction_ids (7, 9, 10, 12, 13, ...) are flagged as fraud. With a 12% fraud rate in the CI sample, a correct label would not flag most early rows, but an inverted one would mark about 88% of them.",
+          "The test SQL (`where is_fraud and transaction_type not in ('transfer','cash_out')`) matches the documented PaySim property and was not changed, so the test is correct.",
+          "The 2181 failures are consistent with the non-transfer/cash_out share of the 4,904-row sample being marked as fraud after inversion."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql"
+        ],
+        "suggested_fix": "Revert the line to `isFraud = 1 as is_fraud,` in risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql. Then run `dbt build --select stg_paysim__transactions+` (or `make ci-build`) so the skipped downstream models and tests are rebuilt and checked. Do not change the test; it is correct.",
+        "confirming_check": "select isFraud, count(*) as raw_rows from raw.paysim_transactions group by 1;  -- compare with: select is_fraud, count(*) from \"ci\".\"staging\".\"stg_paysim__transactions\" group by 1;  The counts should be swapped: staging is_fraud=true equals raw isFraud=0. After the revert, `dbt test --select assert_fraud_only_in_transfer_and_cash_out` should return 0 rows."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "fraud_flag_inverted",
+      "model": "claude-sonnet-5-5",
+      "repeat": 0,
+      "seconds": 7.4,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 13749,
+      "output_tokens": 1033,
+      "estimated_cost_usd": 0.0378,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "A one-line change in stg_paysim__transactions.sql inverted the is_fraud flag (isFraud = 1 became isFraud = 0), so the test that expects fraud only in transfer/cash_out now returns 2181 non-fraud rows of other types.",
+        "root_cause": "In risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql the diff changed `isFraud = 1 as is_fraud` to `isFraud = 0 as is_fraud`. is_fraud is now true for legitimate transactions and false for actual fraud. The test selects `where is_fraud and transaction_type not in ('transfer','cash_out')`, so it now catches legitimate payment and cash_in rows (the sample shows only payment and cash_in types). Real fraud is excluded from is_fraud, so none of it appears in the output. The 2181 failures are only the 'non-fraud' rows of types other than transfer/cash_out, not the whole inverted population. The inversion also corrupts the label feeding ml_transaction_features and the downstream models, which were skipped.",
+        "evidence": [
+          "Diff: `-        isFraud = 1 as is_fraud,` / `+        isFraud = 0 as is_fraud,` in stg_paysim__transactions.sql, the only change since main.",
+          "Sample failing rows are all transaction_type payment or cash_in, types where PaySim never has fraud (CLAUDE.md: 'Fraud only occurs in TRANSFER and CASH_OUT types'), so they are legitimate rows flagged as fraud.",
+          "Compiled test reads directly from staging.stg_paysim__transactions with `where is_fraud`, so the failure originates in that model's is_fraud column.",
+          "The model description and CLAUDE.md say fraud is 0.13% of rows (8,213 of ~6.36M); a flag true for ~99.87% of rows would be an obvious inversion, and failing rows are legitimate-type rows (e.g. transaction_ids 7, 9, 10, 12, 13 are payment/cash_in)."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql"
+        ],
+        "suggested_fix": "Revert the line to `isFraud = 1 as is_fraud,` in risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql, then rerun `dbt build` so the skipped downstream models and tests (dim_account, facts, ml_transaction_features, monitoring) run. Do not change or weaken the test; it is correct.",
+        "confirming_check": "Run against the CI warehouse: `select is_fraud, transaction_type, count(*) from ci.staging.stg_paysim__transactions group by 1,2 order by 1,2;` Before the fix, is_fraud = true spans payment/cash_in/debit rows and is the vast majority; also compare with `select count(*) from ci.raw.paysim_transactions where isFraud = 1` against `count(*) where is_fraud` in staging, which should match after the revert."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "fraud_flag_inverted",
+      "model": "claude-sonnet-5-5",
+      "repeat": 1,
+      "seconds": 7.5,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 13749,
+      "output_tokens": 1000,
+      "estimated_cost_usd": 0.0375,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The recent change to stg_paysim__transactions.sql inverted the is_fraud flag (isFraud = 0 instead of isFraud = 1), so non-fraud rows are labelled as fraud and the fraud-only-in-transfer/cash-out test returns 2181 offending rows.",
+        "root_cause": "In risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql the diff changed `isFraud = 1 as is_fraud` to `isFraud = 0 as is_fraud`. This makes is_fraud true for every legitimate transaction and false for actual fraud. Legitimate payment and cash_in rows now have is_fraud = true, which violates the PaySim rule that fraud only occurs in transfer and cash_out. The offending rows include payment and cash_in types, which never carry fraud in PaySim.",
+        "evidence": [
+          "Diff: `-        isFraud = 1 as is_fraud,` / `+        isFraud = 0 as is_fraud,` in stg_paysim__transactions.sql",
+          "Sample failing rows are all transaction_type payment or cash_in (e.g. transaction_id 7 payment, 9 cash_in), types where real PaySim has no fraud, so they are ordinary non-fraud rows now labelled is_fraud = true",
+          "Test SQL selects `where is_fraud and transaction_type not in ('transfer','cash_out')` on stg_paysim__transactions directly, so the defect is at or upstream of staging, and the only upstream change is the flipped comparison",
+          "CLAUDE.md says fraud only occurs in TRANSFER and CASH_OUT, with 8,213 fraud rows (0.13%) in the full data; the label inversion would yield ~99.87% fraud, so the test catching it is expected behaviour",
+          "The test returns only 2181 rows, not the whole table, because the failing set is the non-transfer/cash_out non-fraud rows in the (likely sample) dataset; this matches an inverted flag rather than a data load problem"
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql"
+        ],
+        "suggested_fix": "Revert the line to `isFraud = 1 as is_fraud,` in stg_paysim__transactions.sql. Keep the test as is, since it is correct. Then rerun `dbt build` so the 88 skipped downstream nodes run and verify the fraud counts.",
+        "confirming_check": "Run against the warehouse: `select is_fraud, transaction_type, count(*) from ci.staging.stg_paysim__transactions group by 1,2 order by 1,2;` and compare with `select isFraud, type, count(*) from raw.paysim_transactions group by 1,2;`. With the bug, is_fraud = true appears on payment/cash_in rows where raw isFraud = 0. After reverting, is_fraud = true should appear only on transfer and cash_out and the test should return 0 rows."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "failed_share_monitor_removed",
+      "model": "claude-opus-5-5",
+      "repeat": 0,
+      "seconds": 9.9,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 23725,
+      "output_tokens": 1029,
+      "estimated_cost_usd": 0.1155,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff deleted the logins/failed_share metric from mon_daily_metrics.sql. mon_daily_anomalies therefore has no rows for that monitor, so assert_every_monitor_was_scored reports it as never scored, even though logins has 32 days of history.",
+        "root_cause": "In models/monitoring/mon_daily_metrics.sql, the change since main removed the `select 'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end) from logins group by login_date` branch from the `shares` CTE. With no failed_share rows in mon_daily_metrics, mon_daily_anomalies can produce no scored rows for (logins, failed_share). The logins row_count monitor still provides 32 days of history for the source, so the test correctly flags the missing monitor. The test and the data are fine. The project rules list failed-login share as a monitored metric, and the model's own YAML description still promises 'the failed-login share'.",
+        "evidence": [
+          "Failing row: source=logins, metric_name=failed_share, days_with_data=32, scored_days=0. The source has plenty of history, but this metric was never scored.",
+          "The diff removes the only code that emits metric_name 'failed_share' (the `'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end)` select in the shares CTE).",
+          "logins row_count still exists via daily_counts/volume, which is why source_history shows 32 days for logins.",
+          "All other expected monitors (transactions, disputes, ml_features) pass, so mon_daily_anomalies scoring logic works.",
+          "The mon_daily_metrics description still lists 'the failed-login share' among its metrics, and CLAUDE.md says a monitor that is never scored once its source has history is an error by design."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/monitoring/mon_daily_metrics.sql"
+        ],
+        "suggested_fix": "Restore the removed union branch in the `shares` CTE of mon_daily_metrics.sql: `select 'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end) from logins group by login_date union all`. If removing the monitor was intentional, the change would also need to remove it from the test's expected_monitors list and the model description, but there is no stated reason to drop it. After the fix, run `make build && make monitoring-export` and commit the regenerated docs/monitoring/monitoring.json, as the project rules require.",
+        "confirming_check": "Run `select metric_name, count(*) from monitoring.mon_daily_metrics where source = 'logins' group by metric_name;`. It should show only row_count, with no failed_share. After restoring the branch, run `dbt build --select mon_daily_metrics+` and confirm that `select count(*) from monitoring.mon_daily_anomalies where source='logins' and metric_name='failed_share' and status <> 'insufficient_baseline'` is > 0 and that assert_every_monitor_was_scored passes."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "failed_share_monitor_removed",
+      "model": "claude-opus-5-5",
+      "repeat": 1,
+      "seconds": 10.8,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 23725,
+      "output_tokens": 1099,
+      "estimated_cost_usd": 0.1169,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff removed the logins `failed_share` metric from models/monitoring/mon_daily_metrics.sql. The monitor is still listed in `expected_monitors`, so assert_every_monitor_was_scored finds logins/failed_share with 32 days of source history and 0 scored days.",
+        "root_cause": "In models/monitoring/mon_daily_metrics.sql the change deleted the branch of the `shares` CTE that computed the failed-login share: `select 'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end) from logins group by login_date`. The `logins` CTE is still defined but no longer feeds that metric. Because mon_daily_metrics emits no failed_share rows, mon_daily_anomalies has none either. The test still expects ('logins', 'failed_share'), so it returns that monitor as never scored. This is exactly the silent loss of a monitor the test exists to catch. The data and the test are correct; the model change is wrong.",
+        "evidence": [
+          "Failing row: `logins | failed_share | 32 | 0`. The logins source has 32 days of data (above the 5-day minimum) but zero scored failed_share days.",
+          "The diff removes from the shares CTE: `- select 'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end) from logins group by login_date`.",
+          "The model description still promises 'the failed-login share', so the code now contradicts its documentation.",
+          "The `logins` CTE (`select * from {{ ref('fct_logins') }}`) is still present, and logins row_count is still produced. That explains days_with_data = 32 for the logins source.",
+          "No other logins/failed_share source exists in the lineage. The other expected monitors are not returned, so the rest of the pipeline is working.",
+          "CLAUDE.md: a monitor that was never scored once its source has history is an error (assert_every_monitor_was_scored)."
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/monitoring/mon_daily_metrics.sql"
+        ],
+        "suggested_fix": "Restore the deleted `union all` branch in the `shares` CTE of models/monitoring/mon_daily_metrics.sql: `select 'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end) from logins group by login_date union all`. If removing the monitor was intended, that is a deliberate design change. It would require removing ('logins', 'failed_share') from expected_monitors in tests/assert_every_monitor_was_scored.sql in the same PR, with a stated reason. The test itself is not wrong. After the fix, per CLAUDE.md, run `make build && make monitoring-export` and commit docs/monitoring/monitoring.json.",
+        "confirming_check": "Run `select source, metric_name, count(*) from ci.monitoring.mon_daily_metrics where source = 'logins' group by all;`. It should show only row_count, with no failed_share. After restoring the branch, run `dbt build --select mon_daily_metrics+` and confirm that assert_every_monitor_was_scored passes and that mon_daily_anomalies has logins/failed_share rows with status <> 'insufficient_baseline'."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "failed_share_monitor_removed",
+      "model": "claude-sonnet-5-5",
+      "repeat": 0,
+      "seconds": 7.5,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 23725,
+      "output_tokens": 974,
+      "estimated_cost_usd": 0.0572,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff deleted the `logins` / `failed_share` branch from the `shares` CTE in mon_daily_metrics.sql, so the monitor produces no rows and is never scored. assert_every_monitor_was_scored correctly fails for that monitor.",
+        "root_cause": "In risk_warehouse/models/monitoring/mon_daily_metrics.sql the union branch `select 'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end) from logins group by login_date` was removed. mon_daily_metrics therefore has no ('logins','failed_share') rows. mon_daily_anomalies is built from mon_daily_metrics, so it has none either, and scored_days = 0. The logins source still has 32 days of data (logins row_count remains), which is more than the 5-day minimum, so the test requires the monitor to be scored. The `expected_monitors` list in the test still includes ('logins','failed_share').",
+        "evidence": [
+          "Diff removes the 'logins' / 'failed_share' / 'all' select from the `shares` CTE in mon_daily_metrics.sql",
+          "Failing row: logins | failed_share | days_with_data=32 | scored_days=0",
+          "days_with_data=32 for logins, so the `> 5` threshold in the test is met; the logins source has data and other logins monitors (row_count) are scored since only failed_share is returned",
+          "The test's expected_monitors still lists ('logins','failed_share'), and CLAUDE.md says a never-scored monitor is an error",
+          "Only one row is returned, so the other 8 monitors, including logins row_count, are still scored"
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/monitoring/mon_daily_metrics.sql",
+          "risk_warehouse/tests/assert_every_monitor_was_scored.sql"
+        ],
+        "suggested_fix": "Restore the removed branch in the `shares` CTE of mon_daily_metrics.sql, between the transactions null_share branch and the ml_features null_share branch: `select 'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end) from logins group by login_date`, joined with `union all`. If the monitor was removed on purpose, remove ('logins','failed_share') from `expected_monitors` in the test in the same PR, and re-run `make build && make monitoring-export` to refresh docs/monitoring/monitoring.json. Do not otherwise weaken the test, which is correct.",
+        "confirming_check": "Run `select metric_name, count(*) from \"ci\".\"monitoring\".\"mon_daily_metrics\" where source = 'logins' group by metric_name;`. It should return only row_count and no failed_share. After restoring the branch, rebuild with `dbt build --select mon_daily_metrics+` and confirm the query returns failed_share and the test passes."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "failed_share_monitor_removed",
+      "model": "claude-sonnet-5-5",
+      "repeat": 1,
+      "seconds": 8.3,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 23725,
+      "output_tokens": 985,
+      "estimated_cost_usd": 0.0573,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "high",
+        "summary": "The diff removed the `logins` / `failed_share` monitor from mon_daily_metrics.sql, but assert_every_monitor_was_scored still lists it in expected_monitors, so it is reported as never scored.",
+        "root_cause": "In models/monitoring/mon_daily_metrics.sql the `shares` CTE branch that produced `'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end)` was deleted. mon_daily_metrics therefore has no rows for (logins, failed_share), so mon_daily_anomalies has none either and scored_days is 0. The logins source still has history: the `volume` metric covers it, giving days_with_data = 32 (more than 5). The test's expected_monitors list still contains ('logins','failed_share'), so the join returns that one row. The test is doing its job. The `logins` CTE is still used by the daily_counts branch, so nothing else broke. The removal looks accidental, since the model description still advertises 'the failed-login share' and CLAUDE.md requires monitors to be listed in the test.",
+        "evidence": [
+          "Test returned exactly one row: logins | failed_share | days_with_data=32 | scored_days=0",
+          "Diff deletes the 'logins' / 'failed_share' select block (login_date, avg of failed attempts) from the `shares` CTE in mon_daily_metrics.sql",
+          "Other logins monitor (row_count) is not returned, so the logins source has data and is scored; only the removed metric is missing",
+          "expected_monitors in the compiled test still includes `select 'logins', 'failed_share'`",
+          "mon_daily_metrics description still says it computes 'the failed-login share'"
+        ],
+        "suspect_files": [
+          "risk_warehouse/models/monitoring/mon_daily_metrics.sql",
+          "risk_warehouse/tests/assert_every_monitor_was_scored.sql"
+        ],
+        "suggested_fix": "Restore the deleted block in the `shares` CTE of mon_daily_metrics.sql, placed between the null_share transactions branch and the ml_features branch with `union all` on each side: `select 'logins', login_date, 'failed_share', 'all', avg(case when is_success then 0.0 else 1.0 end) from logins group by login_date`. If the removal was deliberate, instead drop ('logins','failed_share') from expected_monitors in the test, and update the model description and YAML, the README/docs and the monitoring export. Do not just weaken the test. After restoring, run `make build && make monitoring-export` and commit the JSON.",
+        "confirming_check": "Run: select metric_name, count(*) from ci.monitoring.mon_daily_metrics where source='logins' group by 1; before the fix it returns only row_count; after restoring the block it also returns failed_share. Then rerun `dbt build --select mon_daily_metrics+ assert_every_monitor_was_scored` and confirm the test passes."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "duplicate_raw_transaction",
+      "model": "claude-opus-5-5",
+      "repeat": 0,
+      "seconds": 24.1,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 13272,
+      "output_tokens": 1798,
+      "estimated_cost_usd": 0.089,
+      "diagnosis": {
+        "category": "data_problem",
+        "confidence": "medium",
+        "summary": "The unique test on stg_paysim__transactions.transaction_id fails because transaction_id 1200 appears twice (n_records = 2). The staging model is a 1:1 rename and cast of raw.paysim_transactions with no joins, and no project code changed since origin/main. The duplicate is therefore in the raw PaySim data loaded into the CI warehouse, not something the model created. Every downstream model (dim_account, fct_transactions, ml_transaction_features and the rest) was skipped because of this failure.",
+        "root_cause": "raw.paysim_transactions in the ci warehouse holds two rows with source_row_number = 1200. stg_paysim__transactions maps `source_row_number as transaction_id` straight from `select * from {{ source('paysim', 'paysim_transactions') }}`, with no join, union or fan-out. The model cannot create a duplicate, so it is inherited from the load. Because only one ID is duplicated, a single duplicated record is more likely than a whole batch loaded twice: either one line repeated in data/sample/paysim_sample.csv (for example a hand edit, which CLAUDE.md forbids) or one row re-inserted by an overlapping, non-idempotent load into raw. Which of the two cannot be told from this output; the raw rows' contents and _loaded_at values will settle it.",
+        "evidence": [
+          "Failing test output: `unique_field | n_records` = `1200 | 2`. Exactly one transaction_id is duplicated.",
+          "The compiled SQL reads from \"ci\".\"staging\".\"stg_paysim__transactions\", so this is the CI build on the committed sample.",
+          "The model SQL is a plain `select * from source` followed by column renames (`source_row_number as transaction_id`), with no joins (rule: 'staging never joins'). It is a 1:1 projection, so duplicates must already exist in the source.",
+          "Code diff: 'no changes to project code since origin/main'. No model, macro or ingestion change explains a new duplicate.",
+          "CLAUDE.md says source_row_number is 'the 1-based data row' added by ingestion/common.py and is unique by construction, so two rows sharing it means the same record was loaded or written twice."
+        ],
+        "suspect_files": [
+          "data/sample/paysim_sample.csv",
+          "ingestion/load_raw.py",
+          "ingestion/make_sample.py",
+          "ingestion/common.py"
+        ],
+        "suggested_fix": "Do not deduplicate in the staging model and do not relax the test; the unique key is correct. Find the source of the duplicate first. If the sample CSV contains the repeated row, regenerate it with `make sample` (never edit it by hand), check it again has 4,904 rows with distinct source_row_number, and commit it. If the CSV is clean, the raw load added the row twice: rebuild the CI warehouse from scratch (delete warehouse/ci.duckdb, then `make ci-build`). If it recurs, make load_raw.py replace the table rather than append, or make it reject batches that overlap source_row_number values already loaded.",
+        "confirming_check": "Run `select *, count(*) over () as n from raw.paysim_transactions where source_row_number = 1200;` against warehouse/ci.duckdb. If both rows are identical apart from _loaded_at, the cause is a double load; if they are identical including _loaded_at, a duplicated input line. Then check the sample file: `duckdb -c \"select source_row_number, count(*) from read_csv_auto('data/sample/paysim_sample.csv') group by 1 having count(*) > 1\"`. If that returns row 1200, the sample file is the cause; if it returns nothing, the raw load is."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "duplicate_raw_transaction",
+      "model": "claude-opus-5-5",
+      "repeat": 1,
+      "seconds": 24.1,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 13272,
+      "output_tokens": 1776,
+      "estimated_cost_usd": 0.0886,
+      "diagnosis": {
+        "category": "data_problem",
+        "confidence": "medium",
+        "summary": "The unique test on stg_paysim__transactions.transaction_id failed because transaction_id 1200 appears twice (n_records = 2). The staging model is a 1:1 rename of raw.paysim_transactions with no joins, and no project code changed since main. The duplicate must therefore already exist in the loaded raw source: two raw rows carry source_row_number = 1200. Because this test failed, dim_account, the facts and all ML and monitoring models were skipped.",
+        "root_cause": "The raw table loaded into the CI warehouse (\"ci\".raw.paysim_transactions) has two rows with source_row_number = 1200. models/staging/paysim/stg_paysim__transactions.sql maps `source_row_number as transaction_id` straight from `{{ source('paysim', 'paysim_transactions') }}` with no joins, filters or fan-out, so it cannot create a duplicate. A duplicate key there means the input data itself is duplicated. Likely mechanisms, which the evidence does not yet separate: a re-run or partial append of the 1200th data row during load (e.g. an overlapping batch or a double insert by ingestion/load_raw.py), or a CI sample file data/sample/paysim_sample.csv that contains a duplicated line (e.g. hand-edited instead of rebuilt with `make sample`). No code in the diff explains it.",
+        "evidence": [
+          "Failing test returned exactly one row: `unique_field 1200 | n_records 2`, so a single key is duplicated exactly once and nothing systematic is happening.",
+          "stg_paysim__transactions.sql selects only from the source CTE (`select * from {{ source('paysim', 'paysim_transactions') }}`). It has no joins, unions or unnests, so its grain equals the raw table's grain.",
+          "transaction_id is `source_row_number`, which CLAUDE.md says is 'the 1-based data row' added by ingestion/common.py. A correct load makes it unique by construction, so a repeat points to the loaded data.",
+          "Code diff: '(no changes to project code since origin/main)', so no recent model or macro change can explain the failure.",
+          "The test ran against \"ci\".\"staging\", i.e. the CI sample load (data/sample/paysim_sample.csv \u2192 warehouse/ci.duckdb)."
+        ],
+        "suspect_files": [
+          "data/sample/paysim_sample.csv",
+          "ingestion/load_raw.py",
+          "ingestion/common.py",
+          "models/staging/paysim/stg_paysim__transactions.sql"
+        ],
+        "suggested_fix": "Do not change or weaken the unique test, and do not add a dedupe to staging: the test is correct and caught a real integrity break. First establish where the duplicate came from (see the confirming check).\n\n- If the two raw rows have different `_loaded_at` values, the load ran twice or overlapped. Rebuild the CI warehouse from scratch so raw.paysim_transactions is replaced rather than appended: delete warehouse/ci.duckdb, then run `make ci-build`.\n- If the two rows have the same `_loaded_at` and the CSV has a repeated line, the committed sample is bad. Regenerate it deterministically with `make sample` (never by hand) and commit it.\n\nIf the root cause is a load path that can append duplicates, make load_raw.py replace the table (create or replace) for full loads.",
+        "confirming_check": "Run three checks against warehouse/ci.duckdb:\n1. `select source_row_number, step, type, amount, nameOrig, nameDest, _loaded_at from raw.paysim_transactions where source_row_number = 1200;` shows whether the two rows are identical copies and whether `_loaded_at` differs (a double load) or not (a duplicated input).\n2. `select count(*), count(distinct source_row_number), max(source_row_number) from raw.paysim_transactions;` should give 4904 / 4904 / 4904 for a clean sample load.\n3. Check the file itself, e.g. `duckdb -c \"select count(*) from read_csv_auto('data/sample/paysim_sample.csv')\"` and compare it with the expected 4,904 rows."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "duplicate_raw_transaction",
+      "model": "claude-sonnet-5-5",
+      "repeat": 0,
+      "seconds": 9.9,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 13272,
+      "output_tokens": 1002,
+      "estimated_cost_usd": 0.0366,
+      "diagnosis": {
+        "category": "data_problem",
+        "confidence": "medium",
+        "summary": "unique test on stg_paysim__transactions.transaction_id fails with one duplicated value (transaction_id 1200 appears twice), which points to a duplicated row in the raw PaySim source table, not a staging code defect.",
+        "root_cause": "stg_paysim__transactions maps source_row_number straight to transaction_id with no joins or aggregation, so each raw row yields exactly one staging row. Per CLAUDE.md, source_row_number is the 1-based data row number added by ingestion/common.py and should be unique. Two staging rows with transaction_id 1200 therefore mean the raw table raw.paysim_transactions holds two rows with source_row_number = 1200. The most likely reason is a loading problem, such as a double-loaded or re-appended row or an overlapping load batch, or the numbering step in the reader assigning the same number twice. The code diff is empty, so no recent change explains it, and staging itself cannot create duplicates. This is an inference from the model SQL and the sample row: the raw table was not inspected and the ingestion code was not provided, so a defect in ingestion/common.py or load_raw.py cannot be ruled out.",
+        "evidence": [
+          "Failing test output: transaction_id=1200 with n_records=2; only 1 duplicated key.",
+          "stg_paysim__transactions.sql selects from a single source with no joins: `source_row_number as transaction_id`, so duplicates must already exist upstream in raw.paysim_transactions.",
+          "No changes to project code since origin/main, so the failure is not from a recent code edit.",
+          "This is the only direct failure; the 88 skipped nodes are downstream of this staging model (dim_account, fct_*, int_*, ml, mon_*)."
+        ],
+        "suspect_files": [
+          "ingestion/common.py",
+          "ingestion/load_raw.py",
+          "risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql"
+        ],
+        "suggested_fix": "Find out why raw.paysim_transactions has two rows with source_row_number = 1200. If the row was loaded twice, fix the load so it is idempotent (drop and recreate the table, or load once) and rerun `make ingest` and `make build`. If the numbering in ingestion/common.py assigns 1200 twice, fix it there. Do not weaken or remove the unique test, which is correct. Do not dedupe in staging unless the root cause is understood and the duplicates are exact copies.",
+        "confirming_check": "Run: select source_row_number, count(*), count(distinct (step, type, amount, nameOrig, nameDest)) as distinct_rows from raw.paysim_transactions where source_row_number = 1200 group by 1; and also select count(*), count(distinct source_row_number), max(source_row_number) from raw.paysim_transactions; If there are 2 rows for 1200 (and the total count exceeds the distinct count), the raw load has the duplicate. Identical column values indicate a double load, while differing values indicate a row-numbering bug in ingestion."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "duplicate_raw_transaction",
+      "model": "claude-sonnet-5-5",
+      "repeat": 1,
+      "seconds": 9.2,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 13272,
+      "output_tokens": 932,
+      "estimated_cost_usd": 0.0359,
+      "diagnosis": {
+        "category": "data_problem",
+        "confidence": "medium",
+        "summary": "unique test on stg_paysim__transactions.transaction_id found one duplicated value (1200, 2 rows). Staging is a 1:1 select with no joins, so the duplicate comes from the raw table, and the failure stopped 88 downstream nodes.",
+        "root_cause": "stg_paysim__transactions sets transaction_id = source_row_number, with no joins or aggregation, so the model cannot duplicate rows itself. Two rows in raw.paysim_transactions therefore carry source_row_number = 1200. The cause is in the raw load: either the ingestion loaded the same row twice (a re-run or append instead of replace, or an overlapping load), or the CSV reader assigned a duplicate row number. The code diff is empty (no changes since origin/main), so no recent code change explains it. I cannot see raw data, so the exact load mechanism is unconfirmed.",
+        "evidence": [
+          "Test output: unique_field=1200, n_records=2, so exactly one transaction_id is duplicated.",
+          "stg_paysim__transactions.sql is `select * from source` followed by renames and casts. It has no joins, unions or aggregation that could fan out rows, and transaction_id is directly `source_row_number as transaction_id`.",
+          "The code diff shows no changes since origin/main, so the failure is not from a recent code edit.",
+          "CLAUDE.md says source_row_number is the 1-based data row added by ingestion/common.py and should be unique per row. A duplicate means the raw table has a repeated row or a numbering fault in the load.",
+          "The 88 skipped nodes are a cascade from this failed upstream test, not independent failures."
+        ],
+        "suspect_files": [
+          "ingestion/load_raw.py",
+          "ingestion/common.py",
+          "models/staging/paysim/_paysim__models.yml"
+        ],
+        "suggested_fix": "Do not weaken the unique test. Find out why raw.paysim_transactions has two rows with source_row_number = 1200: check whether the rows are identical (double-loaded) or differ (numbering bug in ingestion/common.py). If the load was duplicated, make load_raw.py idempotent (create or replace the table, not append) and reload via `make ingest`. If the numbering is wrong, fix the reader in ingestion/common.py. Then rerun `dbt build`.",
+        "confirming_check": "Run in DuckDB: select source_row_number, count(*), count(distinct (step, type, amount, nameOrig, nameDest)) as distinct_rows from raw.paysim_transactions group by 1 having count(*) > 1; and compare select count(*), count(distinct source_row_number), max(source_row_number) from raw.paysim_transactions. If count > distinct count, the raw table has duplicates; identical rows imply a double load, differing rows imply a numbering bug."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "login_before_signup",
+      "model": "claude-opus-5-5",
+      "repeat": 0,
+      "seconds": 21.6,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 11020,
+      "output_tokens": 1975,
+      "estimated_cost_usd": 0.0836,
+      "diagnosis": {
+        "category": "data_problem",
+        "confidence": "medium",
+        "summary": "Five logins in January 2021 belong to accounts whose loaded signup_ts falls 11 to 34 months later (2021-12 to 2023-11), well past the roughly 30-day PaySim window. No project code changed and both staging models are pure pass-throughs, so the bad values are most likely in the loaded raw.app_accounts data. This is not the known generator bug this test was written for. The error-severity test failure then caused dbt to skip fct_logins, int_transaction_login_features, ml_transaction_features and the monitoring models.",
+        "root_cause": "A handful of rows in raw.app_accounts in the CI warehouse have signup_ts values far outside the data window, for example 2023-04-30 09:00 against a login at 2021-01-02 08:59. Neither staging model computes anything that could explain this. stg_app__accounts only selects signup_ts unchanged, stg_app__logins only selects login_ts unchanged, and there is no diff against origin/main. The offsets are months to years, not the at most 6.5-hour pattern of the old generator bug described in the test header. And only 5 rows fail, where a systematic generator bug would hit thousands (that bug produced 2,407). This points to corrupt, stale or mismatched raw account data, for example account parquet regenerated or loaded with a different seed or anchor from the logins, or a few corrupted records. It does not point to a model bug. What is missing to be certain: whether the raw parquet in data/raw/generated reproduces these values. If it does, the fault moves to ingestion/generate_entities.py, which is project code.",
+        "evidence": [
+          "Failing sample row: L001b28b587e2c58d has login_ts 2021-01-02 08:59:00 and signup_ts 2023-04-30 09:00:00.",
+          "Failing sample row: L000818238beb6ab0 has login_ts 2021-01-15 05:00:00 and signup_ts 2021-12-07 11:00:00; every signup in the sample lies months to years after the ~30-day PaySim window.",
+          "Every login_ts sits in Jan 2021, consistent with the PaySim anchor; only the signup_ts values are out of range.",
+          "stg_app__accounts.sql is `select account_id, signup_ts, ...` from source('app','app_accounts') with no transformation; stg_app__logins.sql likewise passes login_ts through unchanged.",
+          "Code diff: 'no changes to project code since origin/main'.",
+          "Only 5 failing rows, versus 2,407 rows from the systematic generator bug the test was written to catch.",
+          "The signup_ts values are on the hour, so they are formatted like generator output and look like misaligned values rather than garbage strings."
+        ],
+        "suspect_files": [
+          "raw.app_accounts (loaded table in ci warehouse)",
+          "data/raw/generated/app_accounts.parquet",
+          "ingestion/load_raw.py",
+          "ingestion/generate_entities.py"
+        ],
+        "suggested_fix": "Regenerate and reload the raw entities so accounts and logins come from the same generator run: `make ingest`, or the CI equivalent `make ci-build` from a clean warehouse/ci.duckdb. Then re-run dbt build. If the regenerated parquet still contains signups beyond the data window, the problem is in ingestion/generate_entities.py. In that case fix the signup_ts derivation so signups are bounded at or before each account's first activity, and reclassify this as a code bug. Do not relax or delete the test; it is correct.",
+        "confirming_check": "select a.account_id, a.signup_ts, a._loaded_at, min(l.login_ts) as first_login, count(*) over () as n_bad from ci.raw.app_accounts a join ci.raw.app_logins l using (account_id) group by all having a.signup_ts > min(l.login_ts) or a.signup_ts > (select max(login_ts) from ci.raw.app_logins); then run the same query with duckdb directly against data/raw/generated/app_accounts.parquet and app_logins.parquet. If the parquet is clean but the table is not, it is a load/data problem; if the parquet reproduces the 5 rows, the generator is at fault."
+      },
+      "category_ok": true,
+      "missing": [
+        [
+          "app_logins",
+          "raw logins",
+          "login data",
+          "logins table"
+        ]
+      ],
+      "passed": false
+    },
+    {
+      "case": "login_before_signup",
+      "model": "claude-opus-5-5",
+      "repeat": 1,
+      "seconds": 28.2,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 11020,
+      "output_tokens": 2617,
+      "estimated_cost_usd": 0.0964,
+      "diagnosis": {
+        "category": "data_problem",
+        "confidence": "medium",
+        "summary": "assert_logins_after_account_signup returned 5 logins in Jan 2021 whose accounts have signup_ts 11 months to almost 3 years later (2021-12 to 2023-11), well after the ~30-day PaySim window. There is no code change, and both staging models pass the columns through untouched, so the bad signup_ts values are already in raw.app_accounts. The test is correct, and its failure skips fct_logins and 51 other downstream nodes.",
+        "root_cause": "A handful of rows in raw.app_accounts (loaded from data/raw/generated accounts parquet) carry signup_ts values in 2021-12 to 2023-11. That is impossible for accounts that log in and transact in January 2021. models/staging/app/stg_app__accounts.sql and stg_app__logins.sql only select and rename (`select account_id, signup_ts, ...` / `select login_id, account_id, ..., login_ts`), so they cannot shift timestamps. The diff is empty, so no repository change explains it. The signup times sit just after each login's time of day but on the wrong date (login 2021-01-02 08:59 vs signup 2023-04-30 09:00; 12:39 vs 2022-03-04 13:00; 00:01 vs 2023-11-21 06:00). That points to a corrupted or date-shifted date part in the loaded account records, for example a stale, mismatched or partially regenerated accounts file, rather than a dbt logic error. It is not the old 2,407-row failed-login placement bug the test comment describes: that produced gaps of hours, not years. What's missing: the generator code and the raw file/load metadata (_loaded_at) to tell a corrupted load from a generator regression in ingestion/generate_entities.py.",
+        "evidence": [
+          "Failing rows: L001b28b587e2c58d login_ts 2021-01-02 08:59:00 vs signup_ts 2023-04-30 09:00:00; L00431e56ec697285 2021-01-21 12:11:00 vs 2023-11-03 13:00:00; L000818238beb6ab0 2021-01-15 05:00:00 vs 2021-12-07 11:00:00",
+          "All signup_ts values are after the PaySim window (743 hourly steps, ~30 days from paysim_start_date), so these accounts would 'sign up' long after they transacted",
+          "Only 5 rows fail, so the issue affects a few records, not a systematic offset",
+          "What changed: 'no changes to project code since origin/main'",
+          "stg_app__accounts.sql and stg_app__logins.sql are pure select/rename of the raw sources, so no transformation in dbt could produce these values",
+          "The test logic (`where logins.login_ts < accounts.signup_ts`) matches a real integrity rule: an account can't be logged into before it exists, and replay depends on it"
+        ],
+        "suspect_files": [
+          "data/raw/generated (accounts parquet) / raw.app_accounts",
+          "ingestion/load_raw.py",
+          "ingestion/generate_entities.py"
+        ],
+        "suggested_fix": "Do not change or weaken the test; it is correct. Inspect the offending accounts in raw.app_accounts and the generated accounts parquet. Then regenerate and reload the raw entities from a clean state (`make ingest`, or the CI equivalent that rebuilds warehouse/ci.duckdb) so the deterministic MD5-seeded generator produces consistent signup_ts. If a clean regeneration still yields signup_ts after the PaySim window, treat it as a regression in ingestion/generate_entities.py signup logic: signup must be before the account's first event. Fix it there and add a load-time assertion.",
+        "confirming_check": "select a.account_id, a.signup_ts, a._loaded_at, min(l.login_ts) as first_login, count(*) as bad_logins from raw.app_accounts a join raw.app_logins l on l.account_id = a.account_id where l.login_ts < a.signup_ts group by 1,2,3 order by 2; -- then: select count(*) from raw.app_accounts where signup_ts > (select max(login_ts) from raw.app_logins); After a clean `make ingest` (or `make ci-build`), rerun the same queries and `dbt test -s assert_logins_after_account_signup`. A pass confirms a bad load; a repeat with the same account_ids points to the generator."
+      },
+      "category_ok": true,
+      "missing": [
+        [
+          "app_logins",
+          "raw logins",
+          "login data",
+          "logins table"
+        ]
+      ],
+      "passed": false
+    },
+    {
+      "case": "login_before_signup",
+      "model": "claude-sonnet-5-5",
+      "repeat": 0,
+      "seconds": 12.8,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 11020,
+      "output_tokens": 1280,
+      "estimated_cost_usd": 0.0348,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "medium",
+        "summary": "assert_logins_after_account_signup returns 5 logins that predate their account's signup_ts; the diff is empty, so this is an existing generator/data issue, not a recent change.",
+        "root_cause": "The synthetic entity generator (ingestion/generate_entities.py) produces logins whose login_ts is earlier than the account's signup_ts. The sample rows are not the previously documented 'failed attempts up to 6.5h before' case. Logins are all in Jan 2021 (the PaySim window) while signup_ts is months or years later (e.g. 2023-04-30, 2023-11-03). Gaps of 1 to 3 years cannot come from a few-hour offset. Signups look like they come from a different or mis-anchored time base than the transaction/login timeline, e.g. an account's signup_ts is derived relative to a different anchor, or a receiver-account/signup computation is wrong. The test comment names the earlier fix for the small-offset case, so the generator's signup/login alignment is still not guaranteed. The stg_ models are plain pass-throughs (no transformation), so the bad values originate in the raw generated files, i.e. generator code in this repo. It fails before any later model runs, which causes the 52 skips.",
+        "evidence": [
+          "Test returns 5 rows where logins.login_ts < accounts.signup_ts from stg_app__logins joined to stg_app__accounts",
+          "Sample: L001b28b587e2c58d login 2021-01-02 08:59 vs signup 2023-04-30 09:00 (about 2.3 years later)",
+          "Sample: L00431e56ec697285 login 2021-01-21 12:11 vs signup 2023-11-03 13:00; L001cd5520b9a20cb login 2021-01-26 vs signup 2023-11-21",
+          "All 5 logins are in Jan 2021 and every signup_ts is after 2021-12; this is far beyond the 6.5h offset the test comment describes",
+          "stg_app__logins and stg_app__accounts are pure select/rename of source with no logic, so the values are in raw.app_logins / raw.app_accounts",
+          "No code changes since origin/main, so no dbt model or macro change explains it",
+          "Signup times fall on the hour (09:00, 13:00) while the login minutes are non-round (08:59, 12:39), consistent with a login built as transaction_ts minus minutes for an account whose signup_ts was generated independently"
+        ],
+        "suspect_files": [
+          "ingestion/generate_entities.py",
+          "ingestion/load_raw.py",
+          "risk_warehouse/tests/assert_logins_after_account_signup.sql"
+        ],
+        "suggested_fix": "In ingestion/generate_entities.py, make sure every generated login_ts (including failed attempts and the pre-transaction successful login) is >= the sending account's signup_ts, e.g. clamp with greatest(login_ts, signup_ts) or generate signup_ts strictly before the account's earliest transaction minus the maximum login lead time. Then regenerate (make ingest) and rebuild. Do not weaken or delete the test; it is correct. First check the full-count query to see whether it is only 5 rows or just a sample of more, and whether the offending accounts are ones whose signup_ts is wrong versus logins that are wrong.",
+        "confirming_check": "Run in DuckDB: select count(*), min(a.signup_ts - l.login_ts), max(a.signup_ts - l.login_ts) from raw.app_logins l join raw.app_accounts a using (account_id) where l.login_ts < a.signup_ts; then compare for a sample account its signup_ts to min(transaction_ts) of its transactions in stg_paysim__transactions to see whether signup_ts is later than the account's first transaction. Also grep generate_entities.py for how signup_ts is computed for accounts with multiple or late transactions."
+      },
+      "category_ok": false,
+      "missing": [
+        [
+          "app_logins",
+          "raw logins",
+          "login data",
+          "logins table"
+        ]
+      ],
+      "passed": false
+    },
+    {
+      "case": "login_before_signup",
+      "model": "claude-sonnet-5-5",
+      "repeat": 1,
+      "seconds": 12.7,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 11020,
+      "output_tokens": 1299,
+      "estimated_cost_usd": 0.035,
+      "diagnosis": {
+        "category": "code_bug",
+        "confidence": "medium",
+        "summary": "5 logins in stg_app__logins have a login_ts that is months to years before the owning account's signup_ts, so assert_logins_after_account_signup fails and fct_logins plus everything downstream is skipped.",
+        "root_cause": "The synthetic login generator (ingestion/generate_entities.py) places logins relative to the transaction time without keeping them on or after the account's signup_ts. The test's own comment describes an earlier version of this bug, where failed attempts were placed up to 6.5 hours before a transaction on a freshly opened account. The sample rows are different: the gaps are 1 to 3 years (e.g. login 2021-01-02 vs signup 2023-04-30), so this is not the 6.5-hour margin case. Signups in 2022 and 2023 with logins in January 2021 mean the generator draws signup_ts independently of the activity window, or accounts are generated with signup dates later than their first transaction. The dbt models themselves are plain pass-throughs (stg_app__logins and stg_app__accounts only rename columns), so the defect sits upstream in generation, not in SQL transformations. There are no code changes since main, so this is a latent generator edge case. It surfaces only on this data and was not caught by the earlier fix. I have not seen generate_entities.py, so the exact mechanism is inferred.",
+        "evidence": [
+          "The test returns 5 rows where logins.login_ts < accounts.signup_ts; the staging models only select columns and apply no logic that could alter timestamps",
+          "Sample: L001b28b587e2c58d logs in 2021-01-02 08:59 but the account signed up 2023-04-30 09:00; L00431e56ec697285 logs in 2021-01-21 vs signup 2023-11-03",
+          "The gaps are years, not hours, so they are not explained by the known 6.5-hour failed-attempt window described in the test comment",
+          "All the login timestamps fall in January 2021 (PaySim window), while signup_ts values are in 2021-12 to 2023-11, so signup_ts is later than the whole transaction window for these accounts",
+          "The diff is empty, so no recent change in dbt models caused it; the data is generated deterministically from MD5 seeds, so it reproduces on every run"
+        ],
+        "suspect_files": [
+          "ingestion/generate_entities.py",
+          "risk_warehouse/tests/assert_logins_after_account_signup.sql",
+          "risk_warehouse/models/staging/app/stg_app__accounts.sql"
+        ],
+        "suggested_fix": "In ingestion/generate_entities.py, make signup_ts for every account no later than its earliest event (first login, including failed attempts, and first transaction as sender or receiver). The simplest fix is to compute signup_ts as min(first_event_ts) minus a deterministic MD5-seeded offset, or clamp login_ts to at least signup_ts. Look at how signup_ts is derived for accounts whose logins are produced from transactions, and the fallback used for accounts with no activity. Regenerate with make ingest, then rebuild. Also check that load_raw.py replay times (ENTITY_TIME_COLUMNS) still hold and that make build / replay equality still passes. Do not weaken or delete the test: it is correct and guards replay.",
+        "confirming_check": "Run in DuckDB: select a.account_id, a.signup_ts, min(l.login_ts) as first_login, min(t.transaction_ts) as first_txn from raw.app_accounts a join raw.app_logins l using (account_id) left join \"ci\".\"staging\".\"stg_paysim__transactions\" t on t.sender_account_id = a.account_id where l.login_ts < a.signup_ts group by 1,2; if signup_ts is later than first_txn as well, signup generation is the cause. Also check ingestion/generate_entities.py for how signup_ts is computed for accounts that appear only as senders or receivers once."
+      },
+      "category_ok": false,
+      "missing": [
+        [
+          "app_logins",
+          "raw logins",
+          "login data",
+          "logins table"
+        ]
+      ],
+      "passed": false
+    },
+    {
+      "case": "window_test_off_by_one_day",
+      "model": "claude-opus-5-5",
+      "repeat": 0,
+      "seconds": 13.5,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 14000,
+      "output_tokens": 1411,
+      "estimated_cost_usd": 0.0842,
+      "diagnosis": {
+        "category": "test_problem",
+        "confidence": "high",
+        "summary": "The only change since main narrowed the singular test's upper bound from 31 to 30 days. That contradicts the test's own comment ('31-day window') and PaySim's 743 hourly steps. The 23 legitimate transactions on 2024-01-31 now fail, and because the test runs on stg_paysim__transactions, 88 downstream nodes were skipped.",
+        "root_cause": "risk_warehouse/tests/assert_transaction_ts_within_paysim_window.sql was changed from `dbt.dateadd('day', 31, window_start)` to `dbt.dateadd('day', 30, window_start)`. PaySim has 743 steps, and staging maps step to `paysim_start_date + (step - 1) hours`. So valid timestamps run from 2024-01-01 00:00 to 2024-01-31 22:00 (742 hours, about 30.9 days), which needs a 31-day window. The new bound `>= 2024-01-31 00:00` rejects every transaction on day 31. The staging model and the data are correct; the test expectation is wrong.",
+        "evidence": [
+          "Diff: `- or transaction_ts >= {{ dbt.dateadd('day', 31, window_start) }}` became `+ ... dateadd('day', 30, window_start)`.",
+          "The compiled test's own header comment says: 'Every transaction falls inside PaySim's 31-day window starting at paysim_start_date.'",
+          "CLAUDE.md: '743 steps', 'step is an hour index (1 hour per step, about 30 days)'. 743 hours exceeds 30 days (720 hours), so day 31 legitimately holds data.",
+          "Every sample row falls between 2024-01-31 00:00:00 and 2024-01-31 20:00:00, the first hours past the 30-day bound. None is before 2024-01-01, so the anchor date is fine.",
+          "The failing transaction_ids are 4882\u20134904 (23 rows), the tail of the 4,904-row time-ordered CI sample, i.e. the last steps of PaySim.",
+          "Staging computes `dbt.dateadd('hour', 'step - 1', cast(paysim_start_date as timestamp))`, as documented, and it was not changed in the diff.",
+          "The 88 skipped nodes are all downstream of stg_paysim__transactions. They were skipped because this test on staging failed, not because they have their own errors."
+        ],
+        "suspect_files": [
+          "risk_warehouse/tests/assert_transaction_ts_within_paysim_window.sql"
+        ],
+        "suggested_fix": "Revert the test's upper bound to 31 days: `or transaction_ts >= {{ dbt.dateadd('day', 31, window_start) }}`. This is a case where the test itself is wrong, so correcting it is appropriate. Do not change the staging model or the data. Optionally, derive the bound from the step count (743 hours) so it is exact.",
+        "confirming_check": "Run: `select min(paysim_step), max(paysim_step), min(transaction_ts), max(transaction_ts), count(*) filter (where transaction_ts >= timestamp '2024-01-31') from ci.staging.stg_paysim__transactions;`. Expect max step <= 743, max transaction_ts <= 2024-01-31 22:00:00, and 23 rows on Jan 31. Then revert the line and run `dbt build --select stg_paysim__transactions+ --target ci`; the test should pass and the skipped nodes should run."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "window_test_off_by_one_day",
+      "model": "claude-opus-5-5",
+      "repeat": 1,
+      "seconds": 15.2,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 14000,
+      "output_tokens": 1543,
+      "estimated_cost_usd": 0.0869,
+      "diagnosis": {
+        "category": "test_problem",
+        "confidence": "high",
+        "summary": "The only code change narrowed the PaySim window in tests/assert_transaction_ts_within_paysim_window.sql from 31 days to 30. PaySim spans 743 hourly steps, about 31 days, so the last day's legitimate transactions (2024-01-31) now fail the test. The model and the data are correct; the test is wrong.",
+        "root_cause": "In risk_warehouse/tests/assert_transaction_ts_within_paysim_window.sql the diff changed `transaction_ts >= {{ dbt.dateadd('day', 31, window_start) }}` to `dbt.dateadd('day', 30, window_start)`. The compiled SQL is `cast('2024-01-01' as timestamp) + cast(30 as bigint) * interval 1 day`, so the upper bound is 2024-01-31 00:00. stg_paysim__transactions derives `transaction_ts = paysim_start_date + (step - 1) hours`. PaySim has 743 steps (CLAUDE.md: 'Facts measured on load: 743 steps'), so the last step maps to 2024-01-01 + 742 h = 2024-01-31 22:00. Every row on day 31 is valid PaySim data but falls outside the shrunken 30-day window. The test's own comment still says 'PaySim's 31-day window', which confirms 31 was the intended bound. Because dbt build skips everything downstream of a failing test on stg_paysim__transactions, 88 nodes were skipped. That is fallout, not separate failures.",
+        "evidence": [
+          "The diff touches only the test: `-   or transaction_ts >= {{ dbt.dateadd('day', 31, window_start) }}` / `+   or transaction_ts >= {{ dbt.dateadd('day', 30, window_start) }}`.",
+          "The test comment says 'Every transaction falls inside PaySim's 31-day window starting at paysim_start_date.', which contradicts the new 30-day bound.",
+          "Every sampled failing row is on 2024-01-31 (00:00 to 20:00), so all of them sit in the final day that the change cut off.",
+          "Failing IDs run from 4882 upward and there are 23 failures. In the committed 4,904-row sample that is exactly IDs 4882-4904, the tail of a time-ordered file.",
+          "CLAUDE.md: '743 steps'. (743-1) hours = 30 days 22 hours, so the last timestamp is 2024-01-31 22:00, inside a 31-day window and outside a 30-day one.",
+          "stg_paysim__transactions.sql is unchanged and computes transaction_ts as dateadd('hour', 'step - 1', paysim_start_date), which is correct."
+        ],
+        "suspect_files": [
+          "risk_warehouse/tests/assert_transaction_ts_within_paysim_window.sql"
+        ],
+        "suggested_fix": "Revert the test's upper bound to 31 days: `or transaction_ts >= {{ dbt.dateadd('day', 31, window_start) }}`. Do not change stg_paysim__transactions or the paysim_start_date var; both are correct. This is not weakening a valid test. The changed bound was wrong for PaySim's 743-step range, and reverting restores the documented 31-day window.",
+        "confirming_check": "Run against warehouse/ci.duckdb (and dev): `select max(paysim_step) as max_step, min(transaction_ts) as min_ts, max(transaction_ts) as max_ts, count(*) filter (where transaction_ts >= timestamp '2024-01-31') as day31_rows from staging.stg_paysim__transactions;` Expect max_step up to 743, max_ts <= 2024-01-31 22:00 and day31_rows = 23 on the sample. Then revert the bound and run `dbt build --select stg_paysim__transactions+` to confirm the test passes and the 88 skipped nodes run."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "window_test_off_by_one_day",
+      "model": "claude-sonnet-5-5",
+      "repeat": 0,
+      "seconds": 8.0,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 14000,
+      "output_tokens": 1124,
+      "estimated_cost_usd": 0.0392,
+      "diagnosis": {
+        "category": "test_problem",
+        "confidence": "high",
+        "summary": "The singular test assert_transaction_ts_within_paysim_window was changed from a 31-day window to 30 days, so legitimate transactions on the 31st day (2024-01-31) now fail. The data and staging model are correct.",
+        "root_cause": "The diff in risk_warehouse/tests/assert_transaction_ts_within_paysim_window.sql changed `dbt.dateadd('day', 31, window_start)` to `dbt.dateadd('day', 30, window_start)`. The test's own header comment says 'PaySim's 31-day window', and the compiled SQL now uses `cast(30 as bigint) * interval 1 day`, giving an upper bound of 2024-01-31 00:00:00 (exclusive). stg_paysim__transactions derives transaction_ts as start + (step - 1) hours with start 2024-01-01. PaySim has 743 steps (~30.96 days), so steps 721-743 map to 2024-01-31 00:00 through 2024-01-31 22:00. Those 23 rows (hours 0-22 of Jan 31) are valid and are exactly the 23 failing rows. The staging model and macro are correct; the tightened threshold is wrong.",
+        "evidence": [
+          "The only code change is in the test: `dateadd('day', 31, ...)` -> `dateadd('day', 30, ...)`; the compiled SQL shows `cast(30 as bigint) * interval 1 day`.",
+          "All sampled failing rows have transaction_ts on 2024-01-31 (00:00 to 20:00), i.e. just past the new exclusive upper bound of 2024-01-31 00:00:00.",
+          "The failure count is 23, matching steps 721-743 (743 steps per CLAUDE.md: step 721 -> Jan 31 00:00, step 743 -> Jan 31 22:00).",
+          "Staging computes transaction_ts as start + (step - 1) hours, so step 1 = 2024-01-01 00:00 and no row is before the window start; the failures are all on the upper side.",
+          "The test comment still says 'Every transaction falls inside PaySim's 31-day window', contradicting the 30-day edit.",
+          "CLAUDE.md states step is an hour index covering 'about 30 days' with 743 steps, which spans into the 31st calendar day."
+        ],
+        "suspect_files": [
+          "risk_warehouse/tests/assert_transaction_ts_within_paysim_window.sql"
+        ],
+        "suggested_fix": "Revert the test to `dbt.dateadd('day', 31, window_start)`. This corrects a wrong expectation in the test (not weakening it): 743 hourly steps from 2024-01-01 00:00 end at 2024-01-31 22:00, which is within 31 days. Do not change stg_paysim__transactions or the paysim_start_date var. The 88 skipped nodes are collateral from the upstream failure and should pass once the test is fixed.",
+        "confirming_check": "Run: select min(transaction_ts), max(transaction_ts), count(*) filter (where transaction_ts >= timestamp '2024-01-31') from ci.staging.stg_paysim__transactions; expect max = 2024-01-31 (hour < 23) and the count = 23, then rerun `dbt test --select assert_transaction_ts_within_paysim_window` after reverting to 31 and confirm 0 rows."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "window_test_off_by_one_day",
+      "model": "claude-sonnet-5-5",
+      "repeat": 1,
+      "seconds": 8.5,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 14000,
+      "output_tokens": 1157,
+      "estimated_cost_usd": 0.0396,
+      "diagnosis": {
+        "category": "test_problem",
+        "confidence": "high",
+        "summary": "The singular test assert_transaction_ts_within_paysim_window was changed from a 31-day to a 30-day window, so it now rejects valid transactions on day 31 (2024-01-31). The staging model and data are correct.",
+        "root_cause": "The diff in risk_warehouse/tests/assert_transaction_ts_within_paysim_window.sql changed `dbt.dateadd('day', 31, window_start)` to `dbt.dateadd('day', 30, window_start)`. The compiled SQL now has upper bound 2024-01-01 + 30 days = 2024-01-31 00:00:00 (exclusive). The test's own comment says the window is 31 days. PaySim has 743 steps, which is about 30.96 days. stg_paysim__transactions computes transaction_ts = start + (step - 1) hours, so step 743 maps to 2024-01-31 22:00, and steps 721-743 fall on 2024-01-31. Those are valid rows. The 23 failing rows are exactly those steps (hours 00:00 to 22:00 on Jan 31, with 20 shown in the sample, all on 2024-01-31). Staging is correct and the data are as expected, but the test's upper bound is off by a day.",
+        "evidence": [
+          "Diff: `-   or transaction_ts >= {{ dbt.dateadd('day', 31, window_start) }}` / `+   or transaction_ts >= {{ dbt.dateadd('day', 30, window_start) }}`",
+          "Compiled SQL upper bound: `cast('2024-01-01' as timestamp) + cast(30 as bigint) * interval 1 day`, which is 2024-01-31 00:00:00 exclusive",
+          "Test header comment still says 'PaySim's 31-day window'",
+          "All sampled failing rows have transaction_ts on 2024-01-31 (00:00 to 20:00), which is hours 721+ of the 743-step data",
+          "Staging maps step to start + (step-1) hours, so 743 steps end at 2024-01-31 22:00; 23 hourly steps on Jan 31 matches 'Got 23 results'",
+          "CLAUDE.md says step is an hour index covering 'about 30 days' with 743 steps, so the data spans 31 calendar dates"
+        ],
+        "suspect_files": [
+          "risk_warehouse/tests/assert_transaction_ts_within_paysim_window.sql",
+          "risk_warehouse/models/staging/paysim/stg_paysim__transactions.sql"
+        ],
+        "suggested_fix": "Revert the test to `dbt.dateadd('day', 31, window_start)`. Alternatively, if a tighter bound is wanted, compute it from the step count (start + 743 hours), but do not use 30 days. Do not change the staging model or the paysim_start_date var. Once the test passes again, the 88 skipped downstream nodes (dim_account, facts, ml features, monitoring) will run on the next build.",
+        "confirming_check": "Run: select min(transaction_ts), max(transaction_ts), count(*) filter (where transaction_ts >= timestamp '2024-01-31') from ci.staging.stg_paysim__transactions; expect max = 2024-01-31 22:00:00 (or the last step in the sample), count = 23, and none of the rows >= 2024-02-01. Then revert the 30 back to 31 and rerun `dbt test --select assert_transaction_ts_within_paysim_window`, which should return 0 rows."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "disputes_table_missing",
+      "model": "claude-opus-5-5",
+      "repeat": 0,
+      "seconds": 12.0,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 10997,
+      "output_tokens": 1203,
+      "estimated_cost_usd": 0.068,
+      "diagnosis": {
+        "category": "environment",
+        "confidence": "high",
+        "summary": "stg_app__disputes failed because the raw table \"ci\".\"raw\".\"app_disputes\" does not exist in the CI warehouse. Ingestion did not load the disputes file, so the model and its 66 downstream nodes errored or were skipped. Nothing in the project code changed.",
+        "root_cause": "The raw-load step left out `raw.app_disputes` in warehouse/ci.duckdb, while the other generated entities were loaded. DuckDB reports \"Table with name app_disputes does not exist! Did you mean \\\"app_devices\\\"?\", so `raw.app_devices` is present. The likely causes are:\n- `ingestion/generate_entities.py` did not write `data/raw/generated/app_disputes.parquet`, or wrote it under another name;\n- `ingestion/load_raw.py` skipped it (an interrupted run, or a replay cutoff `--as-of-hours` early enough that no disputes were known yet);\n- dbt ran against a stale or partially ingested ci.duckdb.\n\nThe model SQL is a plain `select * from \"ci\".\"raw\".\"app_disputes\"` with no code change since origin/main, so this is not a code bug. Which of these causes it was cannot be told from the dbt log alone; the ingestion log or the warehouse contents would decide it.",
+        "evidence": [
+          "dbt message: \"Catalog Error: Table with name app_disputes does not exist! Did you mean \\\"app_devices\\\"?\": the raw schema exists and holds other entity tables, but not disputes.",
+          "Compiled SQL selects from \"ci\".\"raw\".\"app_disputes\", which matches the documented source name raw.app_disputes in CLAUDE.md.",
+          "The code diff shows no changes to project code since origin/main, so the source definition and model are unchanged from a passing state.",
+          "Only nodes downstream of disputes were skipped (stg_app__disputes tests, fct_disputes, int_transaction_dispute_features, ml_transaction_features, mon_*). The other sources built (15 success, 112 pass), which fits one missing raw table rather than a broken connection."
+        ],
+        "suspect_files": [
+          "ingestion/load_raw.py",
+          "ingestion/generate_entities.py",
+          "risk_warehouse/models/staging/app/stg_app__disputes.sql"
+        ],
+        "suggested_fix": "Re-run ingestion for the CI target so that raw.app_disputes is created, then rerun the build:\n1. `make ci-build`, or `generate_entities.py` followed by `load_raw.py` against warehouse/ci.duckdb.\n2. `dbt build --select stg_app__disputes+`.\n\nIf ingestion runs cleanly but the table is still missing, check two things in load_raw.py:\n- that app_disputes is in its list of entities to load and in `ENTITY_TIME_COLUMNS`;\n- whether a replay cutoff produced zero disputes and skipped creating the table. If so, create an empty table with the schema instead of skipping it.\n\nDo not change the dbt model or tests.",
+        "confirming_check": "Run `duckdb warehouse/ci.duckdb \"select table_name from information_schema.tables where table_schema='raw' order by 1;\"` and `ls -l data/raw/generated/`. Expect app_accounts, app_devices and app_logins to be present and app_disputes to be missing from the table list, possibly from the parquet files too. Then re-run `load_raw.py` and confirm `select count(*) from raw.app_disputes` returns rows."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "disputes_table_missing",
+      "model": "claude-opus-5-5",
+      "repeat": 1,
+      "seconds": 10.5,
+      "model_served": "claude-opus-5-5",
+      "input_tokens": 10997,
+      "output_tokens": 1042,
+      "estimated_cost_usd": 0.0648,
+      "diagnosis": {
+        "category": "environment",
+        "confidence": "high",
+        "summary": "stg_app__disputes failed because the raw table \"ci\".\"raw\".\"app_disputes\" does not exist in the CI warehouse. The model SQL is unchanged and correct, so the raw load step most likely did not create this table. The other raw.app_* tables such as app_devices are present.",
+        "root_cause": "The CI DuckDB file (warehouse/ci.duckdb) has no raw.app_disputes table. dbt suggests the existing 'app_devices', so ingestion ran at least partly, but app_disputes was not loaded. There is no code diff since origin/main and staging is a plain 1:1 select, so the model is not the cause. Likely mechanisms, which I have not verified: (a) generate_entities.py did not write data/raw/generated/disputes.parquet in this run, or load_raw.py failed or skipped it; (b) dbt ran against a stale or partially ingested ci.duckdb, e.g. `dbt build` without `make ingest` first, or WAREHOUSE_PATH pointing at a different file; (c) in a replay batch, load_raw.py --as-of-hours created no disputes table because no disputes were known before the cutoff, rather than creating an empty table. The 66 skipped nodes are all downstream of this one model.",
+        "evidence": [
+          "dbt message: \"Catalog Error: Table with name app_disputes does not exist! Did you mean \\\"app_devices\\\"?\", so the raw schema exists and holds sibling tables.",
+          "Compiled SQL reads `select * from \"ci\".\"raw\".\"app_disputes\"`, the correct source per CLAUDE.md (load_raw.py loads raw.app_accounts, app_devices, app_logins, app_disputes).",
+          "\"(no changes to project code since origin/main)\": no model, macro or source change explains a missing table.",
+          "No upstream models exist, so the failure is at the raw boundary, which ingestion owns.",
+          "The skipped list contains only disputes-dependent nodes (fct_disputes, int_transaction_dispute_features, ml_transaction_features, mon_*), consistent with one missing source table."
+        ],
+        "suspect_files": [
+          "ingestion/load_raw.py",
+          "ingestion/generate_entities.py",
+          "warehouse/ci.duckdb",
+          "Makefile"
+        ],
+        "suggested_fix": "Re-run ingestion against the CI warehouse before building, e.g. `make ci-build`, which runs the whole pipeline on the sample. Check that data/raw/generated/ contains the disputes parquet and that load_raw.py loads it without error. If this happened in replay, have load_raw.py always create raw.app_disputes, empty if needed, when no rows fall before the --as-of-hours cutoff. Do not change the model or tests.",
+        "confirming_check": "Run `duckdb warehouse/ci.duckdb \"select table_name from information_schema.tables where table_schema='raw' order by 1;\"` to confirm app_disputes is absent. Then run `ls -l data/raw/generated/` and look at the load_raw.py log for this run to see whether the disputes file was produced and loaded."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "disputes_table_missing",
+      "model": "claude-sonnet-5-5",
+      "repeat": 0,
+      "seconds": 10.9,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 10997,
+      "output_tokens": 1132,
+      "estimated_cost_usd": 0.0333,
+      "diagnosis": {
+        "category": "environment",
+        "confidence": "high",
+        "summary": "stg_app__disputes failed because the table \"ci\".\"raw\".\"app_disputes\" does not exist in the target DuckDB database; the code is fine and has not changed since main.",
+        "root_cause": "The raw source table raw.app_disputes was never created in the CI warehouse. DuckDB's catalog error says 'Table with name app_disputes does not exist! Did you mean \"app_devices\"?', so the sibling raw tables (app_devices, and presumably accounts and logins) were loaded but app_disputes was not. Per CLAUDE.md, raw.app_disputes comes from ingestion/generate_entities.py (data/raw/generated/*.parquet) and ingestion/load_raw.py, not from dbt. The ingestion step that should have written it was skipped, failed or partial, or the dbt run read a different or stale DuckDB file. The model is a plain select from the source with no logic, and there are no code changes since origin/main, so the code is not the cause. (The 'LINE 16: status as dispute_status' pointer in the message is just DuckDB's error position and is not meaningful.)",
+        "evidence": [
+          "Error: 'Catalog Error: Table with name app_disputes does not exist! Did you mean \"app_devices\"?' \u2014 a missing table, not a missing column or a type problem.",
+          "Compiled SQL is simply `select * from \"ci\".\"raw\".\"app_disputes\"` followed by renames, with no logic that could produce this.",
+          "Diff: 'no changes to project code since origin/main', so no recent change explains the failure.",
+          "Build summary: 15 success, 1 error, 66 skipped. Every skipped node is downstream of stg_app__disputes (fct_disputes, int_transaction_dispute_features, ml_transaction_features, mon_*), so this is one failure with cascading skips.",
+          "The catalog suggests app_devices, so the raw schema exists and other raw tables were loaded; only app_disputes is missing."
+        ],
+        "suspect_files": [
+          "ingestion/load_raw.py",
+          "ingestion/generate_entities.py",
+          "risk_warehouse/models/staging/app/stg_app__disputes.sql"
+        ],
+        "suggested_fix": "Re-run ingestion so raw.app_disputes gets created in the same DuckDB file dbt reads (`make ingest`, or for CI `make ci-build`, which runs generate_entities.py then load_raw.py before dbt build). Check that generate_entities.py writes data/raw/generated/app_disputes.parquet and that load_raw.py loads it into the `raw` schema. Also confirm WAREHOUSE_PATH / the dbt target (ci vs dev) points at the file ingestion wrote to. If the table is missing only in a replay or early batch, check that app_disputes has an entry in ENTITY_TIME_COLUMNS in load_raw.py. Do not change or remove the staging model or its tests.",
+        "confirming_check": "Run against the warehouse dbt used (e.g. warehouse/ci.duckdb): `select table_schema, table_name from information_schema.tables where table_schema = 'raw' order by 1,2;` and confirm app_disputes is absent while app_devices, app_accounts and app_logins are present. Also run `ls data/raw/generated/` (or the CI equivalent) to see whether app_disputes.parquet was generated, and check the ingestion log for an error."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    },
+    {
+      "case": "disputes_table_missing",
+      "model": "claude-sonnet-5-5",
+      "repeat": 1,
+      "seconds": 11.1,
+      "model_served": "claude-sonnet-5-5",
+      "input_tokens": 10997,
+      "output_tokens": 1145,
+      "estimated_cost_usd": 0.0334,
+      "diagnosis": {
+        "category": "environment",
+        "confidence": "high",
+        "summary": "stg_app__disputes fails because the table \"ci\".\"raw\".\"app_disputes\" does not exist in the target DuckDB database; the code and data it should read were never loaded.",
+        "root_cause": "This is a Catalog Error on the raw source, not a SQL or logic error. The model selects from \"ci\".\"raw\".\"app_disputes\", but the DuckDB catalog only has the sibling raw tables (the hint says 'Did you mean \"app_devices\"?'). `raw.app_disputes` is created by ingestion/load_raw.py from data/raw/generated/*.parquet, so that load step did not run or did not finish in the ci warehouse (warehouse/ci.duckdb) before dbt build. Likely causes are an interrupted or partial ingest (generate_entities.py did not write disputes.parquet, or load_raw.py failed or skipped that entity), or a stale or wrong warehouse file. There are no code changes since origin/main, and the model SQL is a plain 1:1 select that matches the documented raw source name. The 'LINE 16' pointer in the message is just the position DuckDB reports and is misleading. The 66 skipped nodes are all downstream of this one failure.",
+        "evidence": [
+          "Error text: 'Catalog Error: Table with name app_disputes does not exist! Did you mean \"app_devices\"?' means other raw app_* tables exist but app_disputes does not.",
+          "Compiled SQL reads from \"ci\".\"raw\".\"app_disputes\", which is the name CLAUDE.md says load_raw.py creates (raw.app_accounts, app_devices, app_logins, app_disputes).",
+          "The diff shows no changes to project code since origin/main, so a model or macro change cannot explain it.",
+          "15 nodes succeeded and 112 tests passed, so the project otherwise compiles and runs, and other raw tables loaded.",
+          "All skipped nodes (stg_app__disputes tests, fct_disputes, int_transaction_dispute_features, ml_transaction_features, mon_*) depend on stg_app__disputes, which is the cascade of a single missing source table."
+        ],
+        "suspect_files": [
+          "ingestion/load_raw.py",
+          "ingestion/generate_entities.py",
+          "risk_warehouse/models/staging/app/stg_app__disputes.sql"
+        ],
+        "suggested_fix": "Re-run ingestion into the same warehouse the dbt ci target reads: `make ingest` (generate_entities.py, then load_raw.py) for the full flow, or the CI sequence behind `make ci-build`. Check the output for an error on disputes. If data/raw/generated/disputes.parquet is missing, fix the generation step. If load_raw.py skips it, check its entity list and ENTITY_TIME_COLUMNS for app_disputes. Then re-run `dbt build` so the skipped nodes run. No model or test change is needed.",
+        "confirming_check": "Run in DuckDB against the ci warehouse: `select table_schema, table_name from information_schema.tables where table_schema = 'raw' order by 2;` and confirm app_disputes is absent while app_accounts, app_devices and app_logins are present. Also run `ls data/raw/generated/` to check that the disputes parquet file exists. After re-ingesting, `select count(*) from raw.app_disputes;` should return rows and `dbt build --select stg_app__disputes+` should pass."
+      },
+      "category_ok": true,
+      "missing": [],
+      "passed": true
+    }
+  ]
+}

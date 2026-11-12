@@ -19,8 +19,8 @@ to explain every model and every line in an interview, so prefer simple, readabl
 - **dbt Core 1.12** with the **dbt-duckdb** adapter. Local warehouse file: `warehouse/risk.duckdb`.
 - GitHub Actions: CI (`lint`, `dbt`) on every PR; docs published to GitHub Pages on merge.
 - Prefect 3 orchestration (`flows/pipeline.py`) with replay mode; custom data monitoring in dbt.
-- Phase 2 next: a monitoring chart page, then a Claude-API triage agent for test failures. Snowflake +
-  Terraform is documented as an extension, not built. Plan and status: `docs/phase-2-plan.md`.
+- Claude API triage agent for failed builds (`triage/`, Anthropic Python SDK). Snowflake + Terraform
+  is documented as an extension, not built. Plan and status: `docs/phase-2-plan.md`.
 
 ## Repository layout
 
@@ -46,6 +46,8 @@ payments-risk-warehouse/
 │   └── make_sample.py        # builds the CI sample
 ├── flows/
 │   └── pipeline.py           # Prefect flow: full run or replay, with the dbt quality gate
+├── triage/                   # read-only Claude diagnosis of failed builds (context.py, diagnose.py)
+│   └── eval/                 # planted breakages + grader; results.json is committed
 ├── scripts/
 │   ├── run_analyses.py       # `make results`: analyses → Markdown tables
 │   └── compare_warehouses.py # replay check: core/ml tables equal a full build, row for row
@@ -180,6 +182,8 @@ make replay    # replay the full data day by day into warehouse/replay.duckdb; m
 make ci-replay # replay the sample week by week; must equal make ci-build, same as CI
 make monitoring-export  # full-data monitoring -> docs/monitoring/monitoring.json (commit it)
 make monitoring-page    # build the chart page locally -> site/monitoring/index.html
+make triage    # diagnose the last failed build (read-only; needs ANTHROPIC_API_KEY)
+make triage-eval        # grade the triage agent on planted breakages (billed: ask before running)
 ```
 
 ## Orchestration and replay
@@ -224,6 +228,20 @@ make monitoring-page    # build the chart page locally -> site/monitoring/index.
   and commit the JSON in the same PR; CI can't regenerate it (it only has the sample). The export
   refuses to write if a band disagrees with a day's status. Render the page and look at it before
   shipping a template change.
+
+## Triage agent
+
+- `triage/` is **read-only** by design: it reads `target/` artifacts, runs the failing test's query
+  on a read-only DuckDB connection, and returns a diagnosis. Don't give it tools that write, and don't
+  let a triage error mask the gate failure (`triage_failure` in the flow swallows its own errors).
+- The model is `TRIAGE_MODEL` (default in `triage/diagnose.py`). Before changing the model, the
+  prompt, the context or the schema, run `make triage-eval` and compare with `eval/results.json`.
+  It costs money (about $1-2 a run), so ask first; it is not in CI.
+- Use the current Anthropic API and SDK (check the docs, not memory): no `temperature`; set `effort`
+  explicitly; check `stop_reason` before reading output.
+- Eval cases must actually fail the build (the runner checks) and are graded on the cause, not the
+  symptom. When a case fails, fix the cause (often missing context), not the grader.
+- Never print or commit the API key; it lives in the environment only.
 
 ## Working rules for Claude
 
